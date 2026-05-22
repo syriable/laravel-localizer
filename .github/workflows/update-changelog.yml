@@ -14,9 +14,6 @@
 #    stored as `secrets.CHANGELOG_PAT`. Add `token: ${{ secrets.CHANGELOG_PAT }}`
 #    to both the checkout AND the auto-commit steps.
 #
-# During the 0.9.x beta period, branch protection is OFF — the default
-# config below works. Revisit before tagging 1.0.0.
-
 name: Update Changelog
 
 on:

@@ -182,6 +182,22 @@ describe('DiscoverFiles', function () {
             ->and($relativePath)->not->toContain('\\');
     });
 
+    it('uses separator-boundary matching so sibling roots are not confused', function () {
+        // Sibling directories `bar` and `barbaz` share a prefix. A naive
+        // str_starts_with() against `bar` would strip `bar` from `barbaz/x.blade.php`,
+        // yielding `baz/x.blade.php`. The separator-aware check prevents that.
+        $parent = $this->tempDir.'/sib';
+        mkdir($parent.'/bar', 0o755, true);
+        mkdir($parent.'/barbaz', 0o755, true);
+        writeFile($parent.'/barbaz', 'x.blade.php');
+
+        $payload = new ScanPayload(new ScanRequest(paths: [$parent.'/barbaz']));
+        $this->stage->handle($payload, static fn ($p) => $p);
+
+        expect($payload->discoveredFiles)->toHaveCount(1)
+            ->and($payload->discoveredFiles[0]->relativePath)->toBe('x.blade.php');
+    });
+
     it('deduplicates files discovered through multiple overlapping paths', function () {
         writeFile($this->tempDir, 'shared.blade.php');
 

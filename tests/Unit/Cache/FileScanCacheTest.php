@@ -114,9 +114,9 @@ describe('FileScanCache', function () {
     });
 
     it('loads existing cache file on first access', function () {
-        // Pre-write a cache file.
+        // Pre-write a cache file using the current schema version.
         $payload = [
-            'version' => 1,
+            'version' => 2,
             'entries' => [
                 '/preexisting.php' => [
                     'fingerprint' => 'preFp',
@@ -149,6 +149,31 @@ describe('FileScanCache', function () {
         );
 
         expect($cache->count())->toBe(0);
+    });
+
+    it('rejects pre-1.0 (v1) caches', function () {
+        // v1 documents stored {group, namespace, …}; we cannot safely
+        // load them into the new {package, directories, file, key} shape,
+        // so the load path treats them as a miss across the board.
+        file_put_contents($this->cachePath, json_encode([
+            'version' => 1,
+            'entries' => [
+                '/legacy.php' => [
+                    'fingerprint' => 'oldFp',
+                    'strings' => [['value' => 'x', 'kind' => 'json_key', 'extractor' => 'php', 'location' => ['path' => '/legacy.php', 'line' => 1]]],
+                ],
+            ],
+        ]));
+
+        $files = new Filesystem;
+        $cache = new FileScanCache(
+            files: $files,
+            writer: new AtomicWriter($files),
+            path: $this->cachePath,
+        );
+
+        expect($cache->count())->toBe(0)
+            ->and($cache->fingerprint('/legacy.php'))->toBeNull();
     });
 
     it('treats a corrupt cache file as empty without throwing', function () {

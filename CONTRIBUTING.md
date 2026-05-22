@@ -34,7 +34,7 @@ composer check
 ```bash
 composer test               # Pest
 composer test-coverage      # Pest with coverage (min 95%)
-composer analyse            # Larastan at level max
+composer analyse            # Larastan at level 8
 composer format             # Apply Pint
 composer format-check       # Verify formatting
 composer check              # All of the above (sans format)
@@ -42,7 +42,7 @@ composer check              # All of the above (sans format)
 
 ## Static analysis
 
-PHPStan runs at `level: max` with [`larastan`](https://github.com/larastan/larastan) and strict rules. The bar is HIGH — even one new complaint will fail CI.
+PHPStan runs at `level: 8` with [`larastan`](https://github.com/larastan/larastan) and strict rules. The bar is HIGH — even one new complaint will fail CI.
 
 Before pushing a PR, always run:
 
@@ -60,13 +60,20 @@ This rewrites `phpstan-baseline.neon` with the new ignored errors. Include the b
 
 **If your change introduces a false-positive class we'd hit everywhere** (e.g. a new defensive-coding pattern), prefer adding an `identifier:`-based ignore to `phpstan.neon.dist` rather than baseline-ignoring each occurrence. See the comments at the top of `phpstan.neon.dist` for the existing identifier-based ignores and the rationale.
 
-## Beta period (0.9.x)
+## Versioning policy
 
-This package is in active beta. While the engine itself is stable, the public API may shift between minor releases (`0.9.x` → `0.10.x`) based on real-world feedback. If you're contributing during the beta:
+This package follows [Semantic Versioning](https://semver.org/). The
+public API surface — `Localizer`, `PendingScan`, every `Data\*` DTO,
+every `Contracts\*` interface, the `localizer:scan` command signature,
+the `localizer.*` config keys, and the cache schema — is stable. Patch
+releases are bug fixes only, minor releases add backwards-compatible
+features, and major releases may break the API.
 
-- Breaking-change PRs are welcome — we'd rather fix the API now than after `1.0.0`.
-- New features should be argued for in an Issue first; we're keeping scope tight pre-1.0.
-- Add `BC BREAK` to the PR title if your change is breaking. We'll batch breaking changes into the next minor.
+Breaking-change PRs are evaluated against this contract:
+
+- Add `BC BREAK` to the PR title if your change is breaking.
+- Include a migration note in the PR description.
+- Breaking changes ship in the next major release, not the next minor.
 
 ## What we look for
 
