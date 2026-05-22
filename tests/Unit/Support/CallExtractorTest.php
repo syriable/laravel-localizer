@@ -196,6 +196,38 @@ describe('CallExtractor::extractCalls()', function () {
     });
 });
 
+describe('CallExtractor pattern caching', function () {
+    it('returns identical results on repeated calls with the same names list', function () {
+        $code = "t('first') t('second')";
+
+        $first = iterator_to_array($this->extractor->extractCalls($code, ['t']));
+        $second = iterator_to_array($this->extractor->extractCalls($code, ['t']));
+
+        expect($first)->toEqual($second);
+    });
+
+    it('uses different patterns for different name lists', function () {
+        $code = "__('blade') trans('php')";
+
+        $onlyUnderscore = array_column(
+            iterator_to_array($this->extractor->extractCalls($code, ['__'])),
+            'value',
+        );
+        $onlyTrans = array_column(
+            iterator_to_array($this->extractor->extractCalls($code, ['trans'])),
+            'value',
+        );
+        $both = array_column(
+            iterator_to_array($this->extractor->extractCalls($code, ['__', 'trans'])),
+            'value',
+        );
+
+        expect($onlyUnderscore)->toBe(['blade'])
+            ->and($onlyTrans)->toBe(['php'])
+            ->and($both)->toBe(['blade', 'php']);
+    });
+});
+
 describe('CallExtractor::lineFor()', function () {
     it('returns 1 for the start of the content', function () {
         expect($this->extractor->lineFor('first line', 0))->toBe(1);
