@@ -24,6 +24,18 @@ namespace Syriable\Localizer\Support;
 final class CallExtractor
 {
     /**
+     * Compiled regex patterns, keyed by sorted function-name list fingerprint.
+     *
+     * Each extractor instance is reused across many files during a single scan
+     * (they are resolved from the container once). Without caching, the same
+     * pattern is re-built on every file — O(files × functions) preg_quote calls
+     * and string concatenations for zero benefit.
+     *
+     * @var array<string, string>
+     */
+    private array $patternCache = [];
+
+    /**
      * Finds all callsites of the named functions and yields the literal
      * first argument of each, along with the source offset of the
      * opening quote.
@@ -37,8 +49,14 @@ final class CallExtractor
             return;
         }
 
-        $alternatives = array_map(static fn (string $n): string => preg_quote($n, '/'), $names);
-        $pattern = '/(?<![A-Za-z0-9_$.])('.implode('|', $alternatives).')\s*\(/';
+        $cacheKey = implode("\0", $names);
+
+        if (! isset($this->patternCache[$cacheKey])) {
+            $alternatives = array_map(static fn (string $n): string => preg_quote($n, '/'), $names);
+            $this->patternCache[$cacheKey] = '/(?<![A-Za-z0-9_$.])('.implode('|', $alternatives).')\s*\(/';
+        }
+
+        $pattern = $this->patternCache[$cacheKey];
 
         if (preg_match_all($pattern, $contents, $matches, PREG_OFFSET_CAPTURE) === false) {
             return;
