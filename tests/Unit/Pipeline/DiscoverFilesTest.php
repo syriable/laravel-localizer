@@ -167,6 +167,21 @@ describe('DiscoverFiles', function () {
         expect($payload->discoveredFiles[0]->relativePath)->toBe('nested/sample.blade.php');
     });
 
+    it('normalises the relative path to forward slashes regardless of OS', function () {
+        // On Windows, realpath()/Finder yield backslash separators. The
+        // relativePath field must always be forward-slash separated so it
+        // is stable across platforms.
+        writeFile($this->tempDir, 'deep/nested/dir/sample.blade.php');
+
+        $payload = new ScanPayload(new ScanRequest(paths: [$this->tempDir]));
+        $this->stage->handle($payload, static fn ($p) => $p);
+
+        $relativePath = $payload->discoveredFiles[0]->relativePath;
+
+        expect($relativePath)->toBe('deep/nested/dir/sample.blade.php')
+            ->and($relativePath)->not->toContain('\\');
+    });
+
     it('deduplicates files discovered through multiple overlapping paths', function () {
         writeFile($this->tempDir, 'shared.blade.php');
 

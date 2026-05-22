@@ -123,14 +123,25 @@ final class DiscoverFiles
         );
     }
 
+    /**
+     * Computes the scan-root-relative path for a discovered file.
+     *
+     * The returned path always uses forward slashes as the separator,
+     * regardless of host OS. On Windows, both Symfony Finder's real path
+     * and realpath() yield backslash-separated paths; normalising here
+     * keeps DiscoveredFile::$relativePath a stable, platform-independent
+     * value that downstream consumers (and exclusion globs) can rely on.
+     */
     private function relativise(string $absolute, string $root): string
     {
         $rootReal = realpath($root);
 
         if ($rootReal !== false && str_starts_with($absolute, $rootReal)) {
-            return ltrim(substr($absolute, strlen($rootReal)), DIRECTORY_SEPARATOR);
+            $relative = substr($absolute, strlen($rootReal));
+
+            return ltrim(str_replace('\\', '/', $relative), '/');
         }
 
-        return $absolute;
+        return str_replace('\\', '/', $absolute);
     }
 }
