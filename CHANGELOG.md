@@ -5,7 +5,29 @@ All notable changes to `syriable/laravel-localizer` will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-05-22
+## [v1.0.0](https://github.com/syriable/laravel-localizer/releases/tag/v1.0.0/compare/v1.0.0...v1.0.0) - 2026-05-22
+
+### What's Changed
+
+* fix: CallExtractor false positives from .t() / .tc() method calls by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/1
+* fix: normalise DiscoveredFile relativePath to forward slashes (Windows CI) by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/10
+* fix: remove invalid usePage().props.translations from InertiaExtractor by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/2
+* fix: wrap LockTimeoutException inside LocalizerException by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/3
+* fix: dispatch ScanStarted after lock acquisition, not before by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/4
+* feat: add ScanResult::groupedByFilePath() to fix directory collision by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/5
+* fix: prune stale FileScanCache entries for deleted files by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/6
+* perf: cache compiled regex patterns in CallExtractor by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/7
+* fix: add *Component.php pattern to LivewireExtractor for Livewire 3 by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/8
+* fix: raise PHPStan to level 8 and correct README claim by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/9
+* release: 1.0.0 — production stabilization by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/11
+
+### New Contributors
+
+* @alkhatibsy made their first contribution in https://github.com/syriable/laravel-localizer/pull/1
+
+**Full Changelog**: https://github.com/syriable/laravel-localizer/commits/v1.0.0
+
+## [1.0.0](https://github.com/syriable/laravel-localizer/releases/tag/v1.0.0) - 2026-05-22
 
 First stable release. The public API — `Localizer`, `PendingScan`, every
 `Data\*` DTO, every `Contracts\*` interface, the `localizer:scan` command,
@@ -117,8 +139,8 @@ $file = $string->file;
 $package = $string->package;        // just the vendor: 'syriable'
 $directories = $string->directories; // ['profile']
 $key = $string->key;                 // 'submit.label'
-```
 
+```
 For language-file path generation:
 
 ```php
@@ -129,8 +151,8 @@ $path = $string->namespace
 
 // 1.0.0 — call the helper
 $path = $string->langFilePath($locale);
-```
 
+```
 If you implemented `Syriable\Localizer\Contracts\ResultStore`, switch to
 listening for the `Events\ScanCompleted` event:
 
@@ -139,9 +161,9 @@ use Syriable\Localizer\Events\ScanCompleted;
 use Illuminate\Support\Facades\Event;
 
 Event::listen(ScanCompleted::class, fn (ScanCompleted $e) => $store->put($e->result));
-```
 
-## [0.9.0] - 2026-05-21
+```
+## [0.9.0](https://github.com/syriable/laravel-localizer/releases/tag/v0.9.0) - 2026-05-21
 
 First public **beta** release.
 
@@ -172,6 +194,3 @@ First public **beta** release.
 - GitHub Actions workflows: `run-tests`, `phpstan`, `fix-php-code-style-issues`, `update-changelog`.
 - PHPStan baseline file (`phpstan-baseline.neon`) committed at empty state.
 - `SECURITY.md` with GitHub Security Advisory channel.
-
-[1.0.0]: https://github.com/syriable/laravel-localizer/releases/tag/v1.0.0
-[0.9.0]: https://github.com/syriable/laravel-localizer/releases/tag/v0.9.0
