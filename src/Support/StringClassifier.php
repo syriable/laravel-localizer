@@ -152,7 +152,7 @@ final class StringClassifier
             return null;
         }
 
-        return $matches[3];
+        return $matches[3] ?? null;
     }
 
     /**
@@ -170,7 +170,7 @@ final class StringClassifier
             return null;
         }
 
-        return ltrim($matches[4], '.');
+        return isset($matches[4]) ? ltrim($matches[4], '.') : null;
     }
 
     /**
