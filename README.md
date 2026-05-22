@@ -14,17 +14,6 @@
 <a href="https://packagist.org/packages/syriable/laravel-localizer"><img src="https://img.shields.io/packagist/dt/syriable/laravel-localizer.svg?style=flat-square" alt="Total Downloads"></a>
 </p>
 
-> [!IMPORTANT]
-> **This is a 0.9.x beta release.** The engine itself is production-quality (290 passing tests, PHPStan at level 8, no risky warnings), and we're confident in the implementation. What we are NOT yet confident in is whether the **public API shape** is the right one — that's what the beta period is for.
->
-> If you adopt 0.9.x, **pin to a specific minor version** (`"syriable/laravel-localizer": "^0.9.0"`) rather than `dev-main`. Patch releases (`0.9.1`, `0.9.2`, …) are safe to upgrade; minor releases (`0.10.0`, …) may introduce breaking changes during the beta period.
->
-> Once the API stabilizes (target: ~1 month of beta with real-world usage), we'll tag `1.0.0` with the standard semver guarantees.
->
-> **Trying the beta?** Read [BETA-TESTING.md](BETA-TESTING.md) for a 15-minute verification checklist and feedback channels. Bug reports and API feedback are very welcome via [GitHub Issues](https://github.com/syriable/laravel-localizer/issues).
-
----
-
 **Syriable Localizer** is a focused, modern extraction engine for Laravel 13. It discovers translatable strings in your Blade, PHP, Vue, JavaScript, TypeScript, Livewire and Inertia source files, normalizes them, and hands them back as typed immutable DTOs through a stable, contracts-driven API.
 
 It is deliberately scoped to a single responsibility: **extraction**. It does not write language files, manage translators, or sync with third parties — those concerns belong to ecosystem packages built on top of this engine.
@@ -62,11 +51,13 @@ We highly appreciate hearing about how you're using it — open a Discussion to 
 
 ## Installation
 
-Install via composer. During the beta period, pin to `^0.9.0` so you'll receive patch updates but be insulated from breaking changes in `0.10.x`:
+Install via Composer:
 
 ```bash
-composer require "syriable/laravel-localizer:^0.9.0" --dev
+composer require syriable/laravel-localizer --dev
 ```
+
+**Requirements:** PHP 8.4+, Laravel 13.x.
 
 The service provider is auto-discovered. Publish the config file with:
 

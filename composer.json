@@ -1,6 +1,6 @@
 {
     "name": "syriable/laravel-localizer",
-    "description": "A modern, focused localization extraction engine for Laravel 13. Discovers, extracts, and normalizes translatable strings from Blade, PHP, Vue, JS, TS, Livewire, and Inertia source files. Pre-1.0 — API may evolve based on user feedback.",
+    "description": "A modern, focused localization extraction engine for Laravel 13. Discovers, extracts, and normalizes translatable strings from Blade, PHP, Vue, JavaScript, TypeScript, Livewire, and Inertia source files.",
     "keywords": [
         "laravel",
         "localization",

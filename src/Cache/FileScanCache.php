@@ -24,7 +24,18 @@ use Syriable\Localizer\Support\AtomicWriter;
  */
 final class FileScanCache implements ScanCache
 {
-    private const VERSION = 1;
+    /**
+     * Schema version of the persisted cache file.
+     *
+     * Bump whenever the on-disk shape changes incompatibly. A version
+     * mismatch is treated as a cache miss across the board — no
+     * migration is attempted, and the next commit overwrites with the
+     * current schema.
+     *
+     *   v1 — original beta schema (0.9.0): {group, namespace, ...}.
+     *   v2 — 1.0.0 schema: {package, directories, file, key, ...}.
+     */
+    private const VERSION = 2;
 
     /**
      * @var array<string, array{fingerprint: string, strings: list<array<string, mixed>>}>
@@ -62,7 +73,7 @@ final class FileScanCache implements ScanCache
         $strings = [];
 
         foreach ($raw as $item) {
-            /** @var array{value: string, kind: string, extractor: string, location: array{path: string, line: int, column?: int}, group?: string|null} $item */
+            /** @var array{value: string, kind: string, extractor: string, location: array{path: string, line: int, column?: int}, package?: string|null, directories?: list<string>, file?: string|null, key?: string|null} $item */
             $strings[] = ExtractedString::fromArray($item);
         }
 

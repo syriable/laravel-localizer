@@ -136,10 +136,14 @@ final class DiscoverFiles
     {
         $rootReal = realpath($root);
 
-        if ($rootReal !== false && str_starts_with($absolute, $rootReal)) {
-            $relative = substr($absolute, strlen($rootReal));
+        if ($rootReal !== false) {
+            $rootWithSep = rtrim($rootReal, '/\\').DIRECTORY_SEPARATOR;
 
-            return ltrim(str_replace('\\', '/', $relative), '/');
+            if (str_starts_with($absolute, $rootWithSep)) {
+                $relative = substr($absolute, strlen($rootWithSep));
+
+                return str_replace('\\', '/', $relative);
+            }
         }
 
         return str_replace('\\', '/', $absolute);

@@ -43,7 +43,7 @@ describe('LocalizerException', function () {
 
         expect($exception)->toBeInstanceOf(LocalizerException::class)
             ->and($exception->getMessage())->toContain('30')
-            ->and($exception->getMessage())->toContain('lock')
+            ->and($exception->getMessage())->toContain('localizer.lock.seconds')
             ->and($exception->getPrevious())->toBe($cause)
             ->and($exception->file())->toBeNull()
             ->and($exception->cacheVersions())->toBeNull();

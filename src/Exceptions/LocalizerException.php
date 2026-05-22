@@ -59,7 +59,7 @@ class LocalizerException extends RuntimeException
     {
         $message = sprintf(
             'Could not acquire the localizer scan lock within %d seconds. '
-            .'Another scan may be running. Increase `localizer.lock_seconds` or '
+            .'Another scan may be running. Increase `localizer.lock.seconds` or '
             .'wait for the concurrent scan to finish.',
             $seconds,
         );
