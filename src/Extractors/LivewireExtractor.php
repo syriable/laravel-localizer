@@ -44,10 +44,23 @@ final class LivewireExtractor implements Extractor
 
     public function patterns(): array
     {
-        // Matched against basename; the registry's first-match-wins
-        // ordering ensures Livewire takes precedence over Php when
-        // discovering files under app/Livewire/.
-        return ['*Livewire*.php'];
+        // Matched against the file BASENAME only (not the full path).
+        // Livewire 2 used app/Http/Livewire/ with names like *Livewire*.php
+        // or *Component.php. Livewire 3 recommends app/Livewire/ and allows
+        // any class name (Counter.php, ShowInvoices.php, etc.).
+        //
+        // Because the pattern engine operates on basenames, directory-based
+        // disambiguation (e.g. "only files under app/Livewire/") is not
+        // currently possible without architectural changes. The patterns below
+        // cover the most common Livewire naming conventions:
+        //
+        //   *Livewire*.php  — Livewire 2 / explicit "Livewire" in filename
+        //   *Component.php  — Common Livewire 3 suffix convention
+        //
+        // For arbitrary Livewire 3 names (e.g. Counter.php), rely on the
+        // php extractor as a fallback — it extracts the same translation
+        // function calls with the same fidelity, only tagged as 'php'.
+        return ['*Livewire*.php', '*Component.php'];
     }
 
     public function extract(DiscoveredFile $file, string $contents): iterable

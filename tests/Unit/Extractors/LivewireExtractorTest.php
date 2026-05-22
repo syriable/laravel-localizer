@@ -27,8 +27,12 @@ describe('LivewireExtractor', function () {
         expect($this->extractor->name())->toBe('livewire');
     });
 
-    it('matches Livewire-named PHP files', function () {
-        expect($this->extractor->patterns())->toBe(['*Livewire*.php']);
+    it('matches Livewire 2 style filenames containing Livewire', function () {
+        expect($this->extractor->patterns())->toContain('*Livewire*.php');
+    });
+
+    it('matches Livewire 3 Component suffix convention', function () {
+        expect($this->extractor->patterns())->toContain('*Component.php');
     });
 
     it('extracts strings from the fixture', function () {
@@ -49,5 +53,33 @@ describe('LivewireExtractor', function () {
         ));
 
         expect($strings[0]->extractor)->toBe('livewire');
+    });
+
+    it('matches a Livewire 3 *Component.php file via fnmatch', function () {
+        $matched = false;
+
+        foreach ($this->extractor->patterns() as $pattern) {
+            if (fnmatch($pattern, 'ShowInvoicesComponent.php', FNM_CASEFOLD)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        expect($matched)->toBeTrue();
+    });
+
+    it('does not match a generic Livewire 3 name with no conventional suffix (Counter.php)', function () {
+        $matched = false;
+
+        foreach ($this->extractor->patterns() as $pattern) {
+            if (fnmatch($pattern, 'Counter.php', FNM_CASEFOLD)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        // Counter.php has neither 'Livewire' nor 'Component' in its name.
+        // It falls through to PhpExtractor, which handles it correctly.
+        expect($matched)->toBeFalse();
     });
 });
