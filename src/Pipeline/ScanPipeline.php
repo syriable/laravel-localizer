@@ -7,12 +7,14 @@ namespace Syriable\Localizer\Pipeline;
 use Illuminate\Cache\Repository;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Pipeline\Pipeline;
 use Syriable\Localizer\Data\ScanRequest;
 use Syriable\Localizer\Data\ScanResult;
 use Syriable\Localizer\Events\ScanCompleted;
 use Syriable\Localizer\Events\ScanStarted;
+use Syriable\Localizer\Exceptions\LocalizerException;
 
 /**
  * Runs the full extraction pipeline.
@@ -70,7 +72,11 @@ final class ScanPipeline
         $lock = $store->lock($this->lockName, $this->lockSeconds);
 
         try {
-            $lock->block($this->lockSeconds);
+            try {
+                $lock->block($this->lockSeconds);
+            } catch (LockTimeoutException $e) {
+                throw LocalizerException::lockTimeout($this->lockSeconds, $e);
+            }
 
             return $callback();
         } finally {
