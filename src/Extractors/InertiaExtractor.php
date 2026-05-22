@@ -33,7 +33,6 @@ final class InertiaExtractor implements Extractor
         '$t', '$tc', 't', 'tc',
         'i18n.t', 'i18n.global.t',
         'trans', '__',
-        'usePage().props.translations',
     ];
 
     public function __construct(
