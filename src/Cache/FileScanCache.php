@@ -99,6 +99,20 @@ final class FileScanCache implements ScanCache
         $this->dirty = true;
     }
 
+    public function prune(array $knownPaths): void
+    {
+        $this->ensureLoaded();
+
+        $known = array_flip($knownPaths);
+        $before = count($this->entries);
+
+        $this->entries = array_intersect_key($this->entries, $known);
+
+        if (count($this->entries) !== $before) {
+            $this->dirty = true;
+        }
+    }
+
     public function flush(): void
     {
         $this->entries = [];

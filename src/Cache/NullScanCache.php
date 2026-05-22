@@ -34,6 +34,11 @@ final class NullScanCache implements ScanCache
         // Intentional no-op.
     }
 
+    public function prune(array $knownPaths): void
+    {
+        // Intentional no-op.
+    }
+
     public function flush(): void
     {
         // Intentional no-op.

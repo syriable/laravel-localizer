@@ -17,9 +17,10 @@ describe('NullScanCache', function () {
         expect($this->cache->load('/any/path'))->toBe([]);
     });
 
-    it('store, forget, flush, and commit are no-ops', function () {
+    it('store, forget, prune, flush, and commit are no-ops', function () {
         $this->cache->store('/x', 'fp', []);
         $this->cache->forget('/x');
+        $this->cache->prune([]);
         $this->cache->flush();
         $this->cache->commit();
 

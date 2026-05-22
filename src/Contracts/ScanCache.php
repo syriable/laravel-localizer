@@ -52,6 +52,17 @@ interface ScanCache
     public function forget(string $absolutePath): void;
 
     /**
+     * Removes entries whose paths are NOT present in $knownPaths.
+     *
+     * Call this after a full scan to evict stale entries for files that no
+     * longer exist on disk. Implementations MUST mark themselves dirty so
+     * the next {@see commit()} persists the pruned state.
+     *
+     * @param list<string> $knownPaths Absolute paths that are still valid.
+     */
+    public function prune(array $knownPaths): void;
+
+    /**
      * Removes all cached entries.
      */
     public function flush(): void;

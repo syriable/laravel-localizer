@@ -26,6 +26,12 @@ final class PersistCache
     public function handle(ScanPayload $payload, Closure $next): ScanPayload
     {
         if ($payload->request->useCache) {
+            $knownPaths = array_map(
+                static fn ($f) => $f->absolutePath,
+                $payload->discoveredFiles,
+            );
+
+            $this->cache->prune($knownPaths);
             $this->cache->commit();
         }
 
