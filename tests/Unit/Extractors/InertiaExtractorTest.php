@@ -55,4 +55,17 @@ describe('InertiaExtractor', function () {
 
         expect($strings[0]->extractor)->toBe('inertia');
     });
+
+    it('does not treat usePage().props.translations as a callable function', function () {
+        // usePage().props.translations is a property accessor in Inertia, not a
+        // translation function. It must not appear in the FUNCTIONS list.
+        $code = "const t = usePage().props.translations; t('real_key');";
+        $strings = iterator_to_array($this->extractor->extract(makeInertiaFile(), $code));
+
+        $values = array_map(static fn ($s) => $s->value, $strings);
+
+        // Only the bare t('real_key') call should be extracted.
+        expect($strings)->toHaveCount(1)
+            ->and($values[0])->toBe('real_key');
+    });
 });
