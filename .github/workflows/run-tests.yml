@@ -13,11 +13,8 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: write
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, windows-latest]
         php: [8.4]
@@ -54,27 +51,4 @@ jobs:
         run: composer show -D
 
       - name: Execute tests
-        shell: bash
-        run: |
-          set -o pipefail
-          vendor/bin/pest --ci 2>&1 | tee pest-output.txt
-
-      - name: Report test output on failure
-        if: failure()
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          PR=$(gh pr list --repo "${{ github.repository }}" --head "${{ github.ref_name }}" --state open --json number --jq '.[0].number // empty')
-          if [ -z "$PR" ]; then
-            echo "No open PR for branch ${{ github.ref_name }}; skipping report."
-            exit 0
-          fi
-          {
-            echo "### Test output — ${{ matrix.os }} / ${{ matrix.stability }}"
-            echo
-            echo '```'
-            tail -c 55000 pest-output.txt
-            echo '```'
-          } > pest-comment.md
-          gh pr comment "$PR" --repo "${{ github.repository }}" --body-file pest-comment.md
+        run: vendor/bin/pest --ci

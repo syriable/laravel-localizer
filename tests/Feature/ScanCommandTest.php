@@ -54,7 +54,11 @@ it('accepts custom paths as arguments', function () {
     mkdir($custom, 0o755, true);
     file_put_contents($custom.'/x.blade.php', "__('custom path string')");
 
-    $this->artisan('localizer:scan '.$custom)
+    // Pass the path as a structured argument, not concatenated into the
+    // command string: Laravel parses a command string via Symfony's
+    // StringInput, whose tokenizer treats backslashes as escape characters
+    // and would mangle Windows paths like C:\Users\...\custom-path.
+    $this->artisan('localizer:scan', ['paths' => [$custom]])
         ->expectsOutputToContain('custom path string')
         ->assertExitCode(0);
 });
