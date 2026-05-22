@@ -144,12 +144,73 @@ describe('ScanResult', function () {
                 ->and($groups['auth'])->toHaveCount(1);
         });
 
+        it('merges strings from different directories into the same bucket (known limitation)', function () {
+            // groupedByFile() keys on the bare filename, so profile/buttons.submit
+            // and admin/buttons.delete both land in 'buttons'.
+            $profileButtons = makeExtractedString(value: 'profile/buttons.save', kind: StringKind::ShortKey);
+            $adminButtons = makeExtractedString(value: 'admin/buttons.delete', kind: StringKind::ShortKey);
+
+            $result = new ScanResult([$profileButtons, $adminButtons], 2, 0, 0.0);
+
+            $groups = $result->groupedByFile();
+
+            // Both strings collapse into the same 'buttons' bucket.
+            expect($groups)->toHaveKey('buttons')
+                ->and($groups['buttons'])->toHaveCount(2)
+                ->and($groups)->not->toHaveKey('profile/buttons.php')
+                ->and($groups)->not->toHaveKey('admin/buttons.php');
+        });
+
         it('excludes JSON keys', function () {
             $json = makeExtractedString(value: 'Hello', kind: StringKind::JsonKey);
 
             $result = new ScanResult([$json], 1, 0, 0.0);
 
             expect($result->groupedByFile())->toBe([]);
+        });
+    });
+
+    describe('groupedByFilePath()', function () {
+        it('buckets short keys by their full relative path', function () {
+            $paginationNext = makeExtractedString(value: 'pagination.next', kind: StringKind::ShortKey);
+            $authFail = makeExtractedString(value: 'auth.failed', kind: StringKind::ShortKey);
+
+            $result = new ScanResult([$paginationNext, $authFail], 2, 0, 0.0);
+
+            $groups = $result->groupedByFilePath();
+
+            expect($groups)->toHaveKey('pagination.php')
+                ->and($groups)->toHaveKey('auth.php')
+                ->and($groups['pagination.php'])->toHaveCount(1)
+                ->and($groups['auth.php'])->toHaveCount(1);
+        });
+
+        it('keeps strings from different directories in separate buckets', function () {
+            // This is the collision that groupedByFile() cannot avoid.
+            $profileButtons = makeExtractedString(value: 'profile/buttons.save', kind: StringKind::ShortKey);
+            $adminButtons = makeExtractedString(value: 'admin/buttons.delete', kind: StringKind::ShortKey);
+
+            $result = new ScanResult([$profileButtons, $adminButtons], 2, 0, 0.0);
+
+            $groups = $result->groupedByFilePath();
+
+            expect($groups)->toHaveKey('profile/buttons.php')
+                ->and($groups)->toHaveKey('admin/buttons.php')
+                ->and($groups['profile/buttons.php'])->toHaveCount(1)
+                ->and($groups['admin/buttons.php'])->toHaveCount(1)
+                ->and($groups)->not->toHaveKey('buttons');
+        });
+
+        it('excludes JSON keys', function () {
+            $json = makeExtractedString(value: 'Hello', kind: StringKind::JsonKey);
+
+            $result = new ScanResult([$json], 1, 0, 0.0);
+
+            expect($result->groupedByFilePath())->toBe([]);
+        });
+
+        it('returns empty array for an empty result', function () {
+            expect((new ScanResult([], 0, 0, 0.0))->groupedByFilePath())->toBe([]);
         });
     });
 
