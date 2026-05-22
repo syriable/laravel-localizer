@@ -15,7 +15,7 @@
 </p>
 
 > [!IMPORTANT]
-> **This is a 0.9.x beta release.** The engine itself is production-quality (290 passing tests, PHPStan at level max, no risky warnings), and we're confident in the implementation. What we are NOT yet confident in is whether the **public API shape** is the right one — that's what the beta period is for.
+> **This is a 0.9.x beta release.** The engine itself is production-quality (290 passing tests, PHPStan at level 8, no risky warnings), and we're confident in the implementation. What we are NOT yet confident in is whether the **public API shape** is the right one — that's what the beta period is for.
 >
 > If you adopt 0.9.x, **pin to a specific minor version** (`"syriable/laravel-localizer": "^0.9.0"`) rather than `dev-main`. Patch releases (`0.9.1`, `0.9.2`, …) are safe to upgrade; minor releases (`0.10.0`, …) may introduce breaking changes during the beta period.
 >
@@ -352,7 +352,7 @@ This runs the full Pest suite. Other quality gates:
 
 ```bash
 composer test-coverage    # Pest with coverage, min 95%
-composer analyse          # Larastan at level max
+composer analyse          # Larastan at level 8
 composer format           # Apply Pint
 composer format-check     # Verify formatting without changing files
 composer check            # format-check + analyse + test
