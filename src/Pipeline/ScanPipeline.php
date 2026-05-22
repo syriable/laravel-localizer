@@ -44,11 +44,13 @@ final class ScanPipeline
 
     public function run(ScanRequest $request): ScanResult
     {
-        $this->events->dispatch(new ScanStarted($request));
-
         $start = hrtime(true);
 
-        $result = $this->withOptionalLock(fn (): ScanResult => $this->runStages($request, $start));
+        $result = $this->withOptionalLock(function () use ($request, $start): ScanResult {
+            $this->events->dispatch(new ScanStarted($request));
+
+            return $this->runStages($request, $start);
+        });
 
         $this->events->dispatch(new ScanCompleted($result));
 
