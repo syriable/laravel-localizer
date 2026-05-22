@@ -97,6 +97,37 @@ describe('CallExtractor::extractCalls()', function () {
         expect($matches)->toBe([]);
     });
 
+    it('does not match method calls preceded by a dot (this.t, router.t, console.t)', function () {
+        $code = "this.t('method_call'); router.t('route'); console.t('debug'); t('real_key');";
+        $matches = iterator_to_array($this->extractor->extractCalls($code, ['t']));
+
+        $values = array_column($matches, 'value');
+
+        expect($matches)->toHaveCount(1)
+            ->and($values)->toBe(['real_key']);
+    });
+
+    it('does not match dot-prefixed short names like obj.tc()', function () {
+        $code = "obj.tc('should_skip'); tc('should_match');";
+        $matches = iterator_to_array($this->extractor->extractCalls($code, ['tc']));
+
+        $values = array_column($matches, 'value');
+
+        expect($matches)->toHaveCount(1)
+            ->and($values)->toBe(['should_match']);
+    });
+
+    it('does not match chained method calls like i18n.global.t()', function () {
+        // i18n.global.t should be in FUNCTIONS as a literal name, not trigger on bare `t`.
+        $code = "i18n.global.t('chained'); t('standalone');";
+        $matches = iterator_to_array($this->extractor->extractCalls($code, ['t']));
+
+        $values = array_column($matches, 'value');
+
+        expect($matches)->toHaveCount(1)
+            ->and($values)->toBe(['standalone']);
+    });
+
     it('matches function-name with no whitespace between name and paren', function () {
         $matches = iterator_to_array($this->extractor->extractCalls("trans('x')", ['trans']));
 
