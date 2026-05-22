@@ -205,4 +205,64 @@ describe('FileScanCache', function () {
     it('exposes the cache path', function () {
         expect($this->cache->path())->toBe($this->cachePath);
     });
+
+    describe('prune()', function () {
+        it('removes entries whose paths are not in the known set', function () {
+            $this->cache->store('/a.php', 'fp', [makeCacheableString('a')]);
+            $this->cache->store('/b.php', 'fp', [makeCacheableString('b')]);
+            $this->cache->store('/deleted.php', 'fp', [makeCacheableString('gone')]);
+
+            $this->cache->prune(['/a.php', '/b.php']);
+
+            expect($this->cache->fingerprint('/a.php'))->toBe('fp')
+                ->and($this->cache->fingerprint('/b.php'))->toBe('fp')
+                ->and($this->cache->fingerprint('/deleted.php'))->toBeNull()
+                ->and($this->cache->count())->toBe(2);
+        });
+
+        it('marks the cache dirty so the pruned state is persisted on commit()', function () {
+            $this->cache->store('/gone.php', 'fp', [makeCacheableString('gone')]);
+            $this->cache->commit(); // write initial state
+
+            // A new cache instance reads the file.
+            $files = new Filesystem;
+            $cache2 = new FileScanCache(
+                files: $files,
+                writer: new AtomicWriter($files),
+                path: $this->cachePath,
+            );
+
+            $cache2->prune([]); // prune all
+            $cache2->commit();
+
+            // Reload and verify the stale entry is gone.
+            $files2 = new Filesystem;
+            $cache3 = new FileScanCache(
+                files: $files2,
+                writer: new AtomicWriter($files2),
+                path: $this->cachePath,
+            );
+
+            expect($cache3->count())->toBe(0);
+        });
+
+        it('is a no-op when all paths are still known', function () {
+            $this->cache->store('/a.php', 'fp', [makeCacheableString('a')]);
+            $this->cache->commit();
+
+            $countBefore = $this->cache->count();
+            $this->cache->prune(['/a.php']);
+
+            expect($this->cache->count())->toBe($countBefore);
+        });
+
+        it('with an empty known set removes all entries', function () {
+            $this->cache->store('/a.php', 'fp', [makeCacheableString('a')]);
+            $this->cache->store('/b.php', 'fp', [makeCacheableString('b')]);
+
+            $this->cache->prune([]);
+
+            expect($this->cache->count())->toBe(0);
+        });
+    });
 });
