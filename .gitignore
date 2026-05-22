@@ -1,0 +1,15 @@
+/vendor/
+/build/
+/.phpunit.cache/
+/.phpunit.result.cache
+composer.lock
+.phpstorm.meta.php
+_ide_helper.php
+_ide_helper_models.php
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~

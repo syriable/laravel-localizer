@@ -1,0 +1,50 @@
+# Updates CHANGELOG.md automatically when a GitHub Release is published.
+#
+# IMPORTANT: this workflow pushes directly to `main`. That works with the
+# default GITHUB_TOKEN ONLY when `main` is unprotected (or when admins are
+# excluded from the branch protection rule).
+#
+# If you've enabled branch protection on `main` for this repo, you have two
+# options:
+#
+# 1. Allow GitHub Actions to bypass branch protection (in the protection
+#    rule, add `github-actions[bot]` under "Bypass settings").
+#
+# 2. Replace `GITHUB_TOKEN` below with a fine-scoped Personal Access Token
+#    stored as `secrets.CHANGELOG_PAT`. Add `token: ${{ secrets.CHANGELOG_PAT }}`
+#    to both the checkout AND the auto-commit steps.
+#
+# During the 0.9.x beta period, branch protection is OFF — the default
+# config below works. Revisit before tagging 1.0.0.
+
+name: Update Changelog
+
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Update Changelog
+        uses: stefanzweifel/changelog-updater-action@v1
+        with:
+          latest-version: ${{ github.event.release.name }}
+          release-notes: ${{ github.event.release.body }}
+
+      - name: Commit updated CHANGELOG
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          branch: main
+          commit_message: 'docs: update CHANGELOG'
+          file_pattern: CHANGELOG.md
