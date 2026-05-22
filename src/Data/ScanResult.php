@@ -95,18 +95,19 @@ final readonly class ScanResult
     }
 
     /**
-     * Buckets ShortKey strings by their target file name.
+     * Buckets ShortKey strings by their target file name (without directories).
      *
      * Useful for downstream packages that write per-file PHP arrays:
-     * each bucket key is a file name (e.g. `"pagination"`, `"auth"`,
+     * each bucket key is a bare file name (e.g. `"pagination"`, `"auth"`,
      * `"buttons"`) and each value is the list of strings destined for
      * that file. JSON keys are excluded. Each bucket preserves
      * first-occurrence order.
      *
-     * Note: this groups by file NAME only, not by the full directory
-     * path. To bucket by the full filesystem target (including
-     * directories and package), iterate the result and key on
-     * `$string->filePath()` plus `$string->package`.
+     * **Limitation:** keys only include the file basename, not the directory
+     * path. `"profile/buttons.submit"` and `"admin/buttons.delete"` both
+     * land in the `"buttons"` bucket, losing directory context. Use
+     * {@see groupedByFilePath()} if you need the full relative path as the
+     * bucket key.
      *
      * @return array<string, list<ExtractedString>>
      */
@@ -120,6 +121,36 @@ final readonly class ScanResult
             }
 
             $buckets[$string->file][] = $string;
+        }
+
+        return $buckets;
+    }
+
+    /**
+     * Buckets ShortKey strings by their full relative file path.
+     *
+     * Like {@see groupedByFile()} but uses the full relative path from
+     * {@see ExtractedString::filePath()} (e.g. `"profile/buttons.php"`,
+     * `"admin/buttons.php"`) as the bucket key, so strings from different
+     * directories are never merged into the same bucket.
+     *
+     * JSON keys and strings without a file path are excluded. Each bucket
+     * preserves first-occurrence order.
+     *
+     * @return array<string, list<ExtractedString>>
+     */
+    public function groupedByFilePath(): array
+    {
+        $buckets = [];
+
+        foreach ($this->strings as $string) {
+            $filePath = $string->filePath();
+
+            if ($filePath === null) {
+                continue;
+            }
+
+            $buckets[$filePath][] = $string;
         }
 
         return $buckets;
