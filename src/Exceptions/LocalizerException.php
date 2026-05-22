@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Syriable\Localizer\Exceptions;
 
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use RuntimeException;
 use Syriable\Localizer\Data\DiscoveredFile;
 use Throwable;
@@ -47,6 +48,23 @@ class LocalizerException extends RuntimeException
         $exception->contextFile = $file;
 
         return $exception;
+    }
+
+    /**
+     * Raised when a cache lock cannot be acquired within the configured
+     * timeout. Wraps Laravel's {@see LockTimeoutException}
+     * so callers only need to catch {@see LocalizerException}.
+     */
+    public static function lockTimeout(int $seconds, Throwable $cause): self
+    {
+        $message = sprintf(
+            'Could not acquire the localizer scan lock within %d seconds. '
+            .'Another scan may be running. Increase `localizer.lock_seconds` or '
+            .'wait for the concurrent scan to finish.',
+            $seconds,
+        );
+
+        return new self($message, 0, $cause);
     }
 
     /**
