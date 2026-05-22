@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Syriable\Localizer\Data\DiscoveredFile;
 use Syriable\Localizer\Exceptions\LocalizerException;
 use Syriable\Localizer\Exceptions\UnknownExtractorException;
@@ -33,6 +34,19 @@ describe('LocalizerException', function () {
             ->and($exception->getMessage())->toContain('--fresh')
             ->and($exception->cacheVersions())->toBe([1, 2])
             ->and($exception->file())->toBeNull();
+    });
+
+    it('wraps a LockTimeoutException with a helpful message', function () {
+        $cause = new LockTimeoutException;
+
+        $exception = LocalizerException::lockTimeout(30, $cause);
+
+        expect($exception)->toBeInstanceOf(LocalizerException::class)
+            ->and($exception->getMessage())->toContain('30')
+            ->and($exception->getMessage())->toContain('lock')
+            ->and($exception->getPrevious())->toBe($cause)
+            ->and($exception->file())->toBeNull()
+            ->and($exception->cacheVersions())->toBeNull();
     });
 });
 
