@@ -38,7 +38,7 @@ final class CallExtractor
         }
 
         $alternatives = array_map(static fn (string $n): string => preg_quote($n, '/'), $names);
-        $pattern = '/(?<![A-Za-z0-9_$])('.implode('|', $alternatives).')\s*\(/';
+        $pattern = '/(?<![A-Za-z0-9_$.])('.implode('|', $alternatives).')\s*\(/';
 
         if (preg_match_all($pattern, $contents, $matches, PREG_OFFSET_CAPTURE) === false) {
             return;
