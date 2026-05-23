@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Syriable\Localizer\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
+use Syriable\Localizer\Analysis\TranslationCallAnalysis;
+use Syriable\Localizer\Analysis\TranslationCallAnalyzer;
+use Syriable\Localizer\Contracts\AnalysisAwareStrategy;
 use Syriable\Localizer\Data\GenerationRequest;
 use Syriable\Localizer\Data\GenerationResult;
 use Syriable\Localizer\Data\ScanRequest;
@@ -12,10 +17,15 @@ use Syriable\Localizer\Generator\TranslationGenerationPipeline;
 use Syriable\Localizer\Localizer;
 
 /**
- * `php artisan translations:generate`
+ * `php artisan localizer:generate`
  *
  * Scans the application for translatable strings and generates or updates
- * PHP translation files with placeholder values for any missing keys.
+ * translation files with placeholder values for any missing keys.
+ *
+ * Before generating, the command runs a static call-site analysis on the
+ * same source paths so that strategies implementing
+ * {@see AnalysisAwareStrategy} (notably the
+ * `ai` strategy) receive placeholder context and can produce richer output.
  *
  * The command never overwrites existing translation values unless `--force`
  * is explicitly passed. In `--dry-run` mode it prints the would-be file
@@ -26,22 +36,27 @@ final class GenerateCommand extends Command
     /**
      * @var string
      */
-    protected $signature = 'translations:generate
+    protected $signature = 'localizer:generate
         {--locale=     : Locale to generate files for (e.g. en, fr)}
         {--all-locales : Generate files for all locales configured in localizer.generator.locales}
         {--dry-run     : Preview the output without writing any files}
         {--force       : Overwrite existing translation values}
         {--namespace=  : Restrict generation to a vendor package namespace}
-        {--strategy=   : Value generation strategy: humanized (default), key, or empty}
-        {--fresh       : Ignore the cache and re-scan all files before generating}';
+        {--strategy=   : Value generation strategy: humanized (default), key, empty, or ai}
+        {--fresh       : Ignore the cache and re-scan all files before generating}
+        {--no-analyze  : Skip the call-site analysis step (disables placeholder context)}';
 
     /**
      * @var string
      */
-    protected $description = 'Generate PHP translation files for missing keys found during a scan.';
+    protected $description = 'Generate translation files for missing keys, with optional AI translation and placeholder analysis.';
 
-    public function handle(Localizer $localizer, TranslationGenerationPipeline $pipeline): int
-    {
+    public function handle(
+        Localizer $localizer,
+        TranslationGenerationPipeline $pipeline,
+        TranslationCallAnalyzer $analyzer,
+        Filesystem $files,
+    ): int {
         $locales = $this->resolveLocales();
 
         if ($locales === []) {
@@ -65,6 +80,10 @@ final class GenerateCommand extends Command
             return self::SUCCESS;
         }
 
+        $callAnalyses = (bool) $this->option('no-analyze')
+            ? []
+            : $this->runAnalysis($analyzer, $files);
+
         $overallWritten = 0;
         $overallSkipped = 0;
         $overallKeys = 0;
@@ -78,6 +97,7 @@ final class GenerateCommand extends Command
                 dryRun: $dryRun,
                 force: $force,
                 namespace: $namespace,
+                callAnalyses: $callAnalyses,
             );
 
             $result = $pipeline->run($request);
@@ -98,6 +118,68 @@ final class GenerateCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Runs the call-site analyzer over the configured source paths and
+     * returns analyses keyed by translation key. When multiple call sites
+     * share the same key, the first one found takes precedence.
+     *
+     * @return array<string, TranslationCallAnalysis>
+     */
+    private function runAnalysis(TranslationCallAnalyzer $analyzer, Filesystem $files): array
+    {
+        $config = config('localizer');
+
+        /** @var list<string> $paths */
+        $paths = $config['paths'] ?? [];
+
+        $analyses = [];
+
+        foreach ($this->discoverSourceFiles($paths, $files) as $path) {
+            foreach ($analyzer->analyzeFile($path) as $analysis) {
+                if (! isset($analyses[$analysis->key])) {
+                    $analyses[$analysis->key] = $analysis;
+                }
+            }
+        }
+
+        return $analyses;
+    }
+
+    /**
+     * @param  list<string>     $paths
+     * @return iterable<string>
+     */
+    private function discoverSourceFiles(array $paths, Filesystem $files): iterable
+    {
+        foreach ($paths as $path) {
+            if ($files->isFile($path)) {
+                yield $path;
+
+                continue;
+            }
+
+            if (! $files->isDirectory($path)) {
+                continue;
+            }
+
+            $finder = (new Finder)
+                ->in($path)
+                ->files()
+                ->name(['*.php', '*.blade.php'])
+                ->ignoreDotFiles(true)
+                ->ignoreVCS(true)
+                ->followLinks();
+
+            foreach ($finder as $file) {
+                $real = $file->getRealPath();
+
+                if ($real !== false) {
+                    yield $real;
+                }
+            }
+        }
     }
 
     /**
