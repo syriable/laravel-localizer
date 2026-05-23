@@ -67,7 +67,7 @@ describe('TranslationFileGenerator', function () {
 
         expect($outcome->written)->toBeTrue()
             ->and($loaded['submit'])->toBe('Submit')
-            ->and($loaded['cancel'])->toBe('cancel');
+            ->and($loaded['cancel'])->toBe('buttons.cancel');
     });
 
     it('does not overwrite existing values without force', function () {
@@ -93,7 +93,7 @@ describe('TranslationFileGenerator', function () {
         $this->generator->generate($path, $strings, $this->strategy, force: true, dryRun: false);
 
         $loaded = include $path;
-        expect($loaded['login'])->toBe('login');
+        expect($loaded['login'])->toBe('auth.login');
     });
 
     it('skips the file when no new keys are present', function () {
@@ -138,7 +138,7 @@ describe('TranslationFileGenerator', function () {
         $this->generator->generate($path, $strings, $this->strategy, force: false, dryRun: false);
 
         $loaded = include $path;
-        expect($loaded['submit']['label'])->toBe('submit.label');
+        expect($loaded['submit']['label'])->toBe('buttons.submit.label');
     });
 
     it('applies the humanized strategy correctly', function () {

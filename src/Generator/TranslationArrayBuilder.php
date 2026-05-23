@@ -35,7 +35,7 @@ final class TranslationArrayBuilder
                 continue;
             }
 
-            $value = $strategy->generate($string->key);
+            $value = $strategy->generate($string->value);
             $result = $this->set($result, $string->key, $value);
         }
 
