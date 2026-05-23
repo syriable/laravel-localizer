@@ -5,12 +5,19 @@ All notable changes to `syriable/laravel-localizer` will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.0.1 - 2026-05-23
+
+### What's Changed
+
+* feat: automatic translation file generator by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/12
+
+**Full Changelog**: https://github.com/syriable/laravel-localizer/compare/v1.0.0...v1.0.1
+
 ## [Unreleased]
 
 ### Added
 
-- **Automatic translation file generator.** A new `php artisan
-  translations:generate` command reads the scan result and writes (or
+- **Automatic translation file generator.** A new `php artisan translations:generate` command reads the scan result and writes (or
   previews) PHP translation files with placeholder values for any
   missing keys. Includes:
   - Three built-in value strategies: `humanized` (default, "submit_btn"
@@ -28,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Command options: `--locale`, `--all-locales` (from
     `localizer.generator.locales`), `--dry-run`, `--force`,
     `--namespace`, `--strategy`, `--fresh`.
+  
 - `Generator\TranslationArrayBuilder` — builds nested PHP arrays from
   flat dot-notation keys.
 - `Generator\TranslationMergeService` — recursive merge with optional
@@ -181,6 +189,7 @@ $package = $string->package;        // just the vendor: 'syriable'
 $directories = $string->directories; // ['profile']
 $key = $string->key;                 // 'submit.label'
 
+
 ```
 For language-file path generation:
 
@@ -193,6 +202,7 @@ $path = $string->namespace
 // 1.0.0 — call the helper
 $path = $string->langFilePath($locale);
 
+
 ```
 If you implemented `Syriable\Localizer\Contracts\ResultStore`, switch to
 listening for the `Events\ScanCompleted` event:
@@ -202,6 +212,7 @@ use Syriable\Localizer\Events\ScanCompleted;
 use Illuminate\Support\Facades\Event;
 
 Event::listen(ScanCompleted::class, fn (ScanCompleted $e) => $store->put($e->result));
+
 
 ```
 ## [0.9.0](https://github.com/syriable/laravel-localizer/releases/tag/v0.9.0) - 2026-05-21
