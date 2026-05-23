@@ -134,4 +134,66 @@ describe('GenerateCommand', function () {
         $this->artisan('translations:generate', ['--all-locales' => true])
             ->assertSuccessful();
     });
+
+    it('generates a JSON file for free-text strings', function () {
+        writeFile($this->tempPath, 'welcome.blade.php', "{{ __('Welcome back') }}");
+
+        $this->artisan('translations:generate', ['--locale' => 'en'])
+            ->assertSuccessful();
+
+        $jsonPath = base_path('lang/en.json');
+        expect(file_exists($jsonPath))->toBeTrue();
+
+        $data = json_decode(file_get_contents($jsonPath), true);
+        expect($data)->toHaveKey('Welcome back');
+    });
+
+    it('generates both PHP and JSON files when scan contains both kinds', function () {
+        writeFile($this->tempPath, 'mixed.blade.php',
+            "{{ __('pagination.next') }}\n{{ __('Welcome back') }}",
+        );
+
+        $this->artisan('translations:generate', ['--locale' => 'en'])
+            ->assertSuccessful();
+
+        expect(file_exists(base_path('lang/en/pagination.php')))->toBeTrue()
+            ->and(file_exists(base_path('lang/en.json')))->toBeTrue();
+    });
+
+    it('--dry-run does not write JSON files', function () {
+        writeFile($this->tempPath, 'welcome.blade.php', "{{ __('Welcome back') }}");
+
+        $this->artisan('translations:generate', ['--locale' => 'en', '--dry-run' => true])
+            ->assertSuccessful()
+            ->expectsOutputToContain('WOULD WRITE');
+
+        expect(file_exists(base_path('lang/en.json')))->toBeFalse();
+    });
+
+    it('does not overwrite existing JSON values by default', function () {
+        writeFile($this->tempPath, 'welcome.blade.php', "{{ __('Welcome back') }}");
+        $langDir = base_path('lang');
+        @mkdir($langDir, 0o755, true);
+        file_put_contents($langDir.'/en.json', json_encode(['Welcome back' => 'Bienvenue']));
+
+        $this->artisan('translations:generate', ['--locale' => 'en'])
+            ->assertSuccessful()
+            ->expectsOutputToContain('up to date');
+
+        $data = json_decode(file_get_contents($langDir.'/en.json'), true);
+        expect($data['Welcome back'])->toBe('Bienvenue');
+    });
+
+    it('--force overwrites existing JSON values', function () {
+        writeFile($this->tempPath, 'welcome.blade.php', "{{ __('Welcome back') }}");
+        $langDir = base_path('lang');
+        @mkdir($langDir, 0o755, true);
+        file_put_contents($langDir.'/en.json', json_encode(['Welcome back' => 'Bienvenue']));
+
+        $this->artisan('translations:generate', ['--locale' => 'en', '--force' => true])
+            ->assertSuccessful();
+
+        $data = json_decode(file_get_contents($langDir.'/en.json'), true);
+        expect($data['Welcome back'])->not->toBe('Bienvenue');
+    });
 });

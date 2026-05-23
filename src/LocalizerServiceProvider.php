@@ -24,6 +24,8 @@ use Syriable\Localizer\Generator\TranslationArrayBuilder;
 use Syriable\Localizer\Generator\TranslationFileGenerator;
 use Syriable\Localizer\Generator\TranslationFileRepository;
 use Syriable\Localizer\Generator\TranslationGenerationPipeline;
+use Syriable\Localizer\Generator\TranslationJsonFileGenerator;
+use Syriable\Localizer\Generator\TranslationJsonRepository;
 use Syriable\Localizer\Generator\TranslationMergeService;
 use Syriable\Localizer\Generator\TranslationPhpRenderer;
 use Syriable\Localizer\Pipeline\DiscoverFiles;
@@ -184,6 +186,16 @@ final class LocalizerServiceProvider extends ServiceProvider
             repository: $app->make(TranslationFileRepository::class),
         ));
 
+        $this->app->singleton(TranslationJsonRepository::class, fn ($app): TranslationJsonRepository => new TranslationJsonRepository(
+            files: $app->make(Filesystem::class),
+            writer: $app->make(AtomicWriter::class),
+        ));
+
+        $this->app->singleton(TranslationJsonFileGenerator::class, fn ($app): TranslationJsonFileGenerator => new TranslationJsonFileGenerator(
+            merger: $app->make(TranslationMergeService::class),
+            repository: $app->make(TranslationJsonRepository::class),
+        ));
+
         $this->app->singleton(StrategyRegistry::class, function (): StrategyRegistry {
             $registry = new StrategyRegistry;
             $registry->register(new HumanizedStrategy);
@@ -195,6 +207,7 @@ final class LocalizerServiceProvider extends ServiceProvider
 
         $this->app->singleton(TranslationGenerationPipeline::class, fn ($app): TranslationGenerationPipeline => new TranslationGenerationPipeline(
             fileGenerator: $app->make(TranslationFileGenerator::class),
+            jsonFileGenerator: $app->make(TranslationJsonFileGenerator::class),
             strategies: $app->make(StrategyRegistry::class),
         ));
     }
