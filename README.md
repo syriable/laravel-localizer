@@ -333,29 +333,85 @@ Event::listen(ScanCompleted::class, function (ScanCompleted $event) {
 });
 ```
 
+## Analyzing translation calls
+
+Beyond simple key extraction, the package can perform a deeper inspection
+of every translation call site — capturing not just the key, but the
+**replacements array** and the kind of PHP expression behind each
+placeholder.
+
+```bash
+php artisan localizer:analyze                       # configured paths
+php artisan localizer:analyze app/ resources/views  # explicit paths
+php artisan localizer:analyze --json                # structured output
+php artisan localizer:analyze --key=auth.failed     # filter by key
+```
+
+For every `__()`, `trans()`, `@lang()`, `trans_choice()`, `Lang::get()`
+or `Lang::choice()` call the analyzer extracts the literal key plus
+every `:placeholder => $expression` pair, then classifies each
+expression into one of eight typed categories: `variable`,
+`object_property`, `nested_object_property`, `function_call`,
+`method_call`, `static_method_call`, `literal`, `expression`.
+
+Example: for `__('welcome', ['name' => $user->profile->full_name, 'count' => getOrdersCount($user->id)])` the JSON output contains:
+
+```json
+{
+    "key": "welcome",
+    "function": "__",
+    "placeholders": [
+        {
+            "placeholder": ":name",
+            "source": "$user->profile->full_name",
+            "type": "nested_object_property",
+            "structure": { "object": "$user", "path": ["profile", "full_name"] }
+        },
+        {
+            "placeholder": ":count",
+            "source": "getOrdersCount($user->id)",
+            "type": "function_call",
+            "structure": { "function": "getOrdersCount", "arguments": ["$user->id"] }
+        }
+    ],
+    "lang_example": { "welcome": "Welcome :name :count" }
+}
+```
+
+This is the engine behind the AI generation strategy's prompt-enrichment
+step, and it is exposed standalone so downstream tooling (linters,
+audits, IDE plugins) can reason about placeholder shapes.
+
 ## Generating translation files
 
-The package ships a companion `translations:generate` command that turns
+The package ships a companion `localizer:generate` command that turns
 a scan result into actual PHP translation files. It's an optional
 convenience built on top of the extraction engine — the engine itself
 remains write-free.
 
 ```bash
-php artisan translations:generate                 # uses app.locale
-php artisan translations:generate --locale=fr
-php artisan translations:generate --all-locales   # from localizer.generator.locales
-php artisan translations:generate --dry-run       # preview without writing
-php artisan translations:generate --strategy=key  # humanized | key | empty
-php artisan translations:generate --namespace=acme
-php artisan translations:generate --force         # overwrite existing values
-php artisan translations:generate --fresh         # ignore scan cache
+php artisan localizer:generate                 # uses app.locale
+php artisan localizer:generate --locale=fr
+php artisan localizer:generate --all-locales   # from localizer.generator.locales
+php artisan localizer:generate --dry-run       # preview without writing
+php artisan localizer:generate --strategy=key  # humanized | key | empty | ai
+php artisan localizer:generate --namespace=acme
+php artisan localizer:generate --force         # overwrite existing values
+php artisan localizer:generate --fresh         # ignore scan cache
+php artisan localizer:generate --no-analyze    # skip call-site analysis
 ```
+
+Before generating, the command automatically runs the call-site analyzer
+over your source paths and passes the resulting placeholder context to
+any strategy that implements `AnalysisAwareStrategy` (most notably the
+`ai` strategy). Use `--no-analyze` to disable this step.
 
 For every scanned ShortKey, the generator writes the missing keys to
 the corresponding PHP file under `lang/{locale}/` (or
 `lang/vendor/{package}/{locale}/` for vendor-namespaced keys), preserving
-the directory structure encoded in the key. A key like
-`profile/btn/form.submit.label` produces:
+the directory structure encoded in the key. JsonKey strings are written
+to `lang/{locale}.json`. A key like `profile/btn/form.submit.label`
+produces:
 
 ```php
 // lang/en/profile/btn/form.php
@@ -383,11 +439,12 @@ return [
 
 **Value strategies:**
 
-| Strategy | Example key | Generated value |
-|---|---|---|
-| `humanized` (default) | `submit_btn` | `Submit btn` |
-| `key` | `auth.login.failed` | `auth.login.failed` |
-| `empty` | any | `''` |
+| Strategy              | Example key         | Generated value                                |
+| --------------------- | ------------------- | ---------------------------------------------- |
+| `humanized` (default) | `submit_btn`        | `Submit btn`                                   |
+| `key`                 | `auth.login.failed` | `auth.login.failed`                            |
+| `empty`               | any                 | `''`                                           |
+| `ai`                  | `auth.login.failed` | `Connexion échouée` (real translation via API) |
 
 Register a custom strategy from a service provider:
 
@@ -400,6 +457,12 @@ $this->app->extend(StrategyRegistry::class, function (StrategyRegistry $registry
 });
 ```
 
+Custom strategies may also implement
+`Syriable\Localizer\Contracts\LocaleAwareStrategy` (to receive the
+target locale before generation begins) or
+`Syriable\Localizer\Contracts\AnalysisAwareStrategy` (to receive the
+key → `TranslationCallAnalysis` map produced by the analyzer).
+
 **Configuring default locales:**
 
 ```php
@@ -409,6 +472,56 @@ $this->app->extend(StrategyRegistry::class, function (StrategyRegistry $registry
     'strategy' => 'humanized',          // default --strategy
 ],
 ```
+
+### AI translation strategy
+
+The `ai` strategy translates missing keys via the Anthropic Messages
+API, with persistent caching and placeholder preservation. It is
+opt-in and never invoked unless you pass `--strategy=ai` (or set it as
+the default).
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+php artisan localizer:generate --locale=fr --strategy=ai
+php artisan localizer:generate --locale=de --strategy=ai --dry-run
+```
+
+For each missing key the strategy:
+
+1. **Masks** any `:placeholder` tokens (e.g. `:name`, `:count`) to
+   opaque `{{P0}}`, `{{P1}}` tokens so the model cannot accidentally
+   translate them.
+2. **Checks** the persistent cache (keyed by model + source locale +
+   target locale + masked text). Cache hits skip the API call.
+3. **Calls** the Anthropic API with a prompt enriched by call-site
+   analysis — the AI sees which placeholder is a person's name, which
+   is a count, etc., and can produce grammatically appropriate
+   translations.
+4. **Restores** the original `:placeholder` tokens in the translated
+   result.
+5. **Falls back** to the configured fallback strategy (defaults to
+   `humanized`) on any API or network failure — generation never
+   crashes mid-run.
+
+The cache lives at `storage/app/.localizer/ai-cache.json` by default
+and is deliberately kept outside `storage/framework/cache/` so that
+`php artisan cache:clear` never evicts expensive AI translations.
+
+```php
+// config/localizer.php
+'ai' => [
+    'model'             => env('LOCALIZER_AI_MODEL', 'claude-opus-4-7'),
+    'api_key'           => env('ANTHROPIC_API_KEY', ''),
+    'source_locale'     => env('LOCALIZER_AI_SOURCE_LOCALE', 'en'),
+    'fallback_strategy' => 'humanized',
+    'cache_path'        => storage_path('app/.localizer/ai-cache.json'),
+],
+```
+
+Changing the model, source locale, or target locale automatically
+invalidates the cache for affected entries — the key is a content
+hash of all four parameters.
 
 ## Testing
 
