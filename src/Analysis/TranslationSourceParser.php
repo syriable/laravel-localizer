@@ -6,6 +6,7 @@ namespace Syriable\Localizer\Analysis;
 
 use Syriable\Localizer\Data\SourceLocation;
 use Syriable\Localizer\Support\CallExtractor;
+use Syriable\Localizer\Support\CommentStripper;
 
 /**
  * Locates translation calls in PHP/Blade source code and extracts both
@@ -32,6 +33,10 @@ use Syriable\Localizer\Support\CallExtractor;
  */
 final class TranslationSourceParser
 {
+    public function __construct(
+        private readonly CommentStripper $stripper = new CommentStripper,
+    ) {}
+
     /**
      * Function names whose replacements array is the 2nd argument.
      *
@@ -58,6 +63,8 @@ final class TranslationSourceParser
      */
     public function parse(string $contents, string $filePath): iterable
     {
+        $contents = $this->stripper->strip($contents);
+
         foreach ($this->findCallStarts($contents) as [$function, $afterParenOffset]) {
             $parsed = $this->parseCall($contents, $function, $afterParenOffset, $filePath);
 

@@ -20,6 +20,12 @@ namespace Syriable\Localizer\Support;
  * variable, a concatenation, a function call) is skipped — the engine
  * cannot statically resolve dynamic keys, and trying to would produce
  * false positives.
+ *
+ * Before searching, the content is passed through {@see CommentStripper}
+ * so that translation-call lookalikes inside comments are ignored. Comment
+ * characters are replaced with spaces (newlines preserved) so that byte
+ * offsets — and therefore line numbers derived from {@see lineFor()} —
+ * remain accurate.
  */
 final class CallExtractor
 {
@@ -35,6 +41,10 @@ final class CallExtractor
      */
     private array $patternCache = [];
 
+    public function __construct(
+        private readonly CommentStripper $stripper = new CommentStripper,
+    ) {}
+
     /**
      * Finds all callsites of the named functions and yields the literal
      * first argument of each, along with the source offset of the
@@ -48,6 +58,8 @@ final class CallExtractor
         if ($names === []) {
             return;
         }
+
+        $contents = $this->stripper->strip($contents);
 
         $cacheKey = implode("\0", $names);
 

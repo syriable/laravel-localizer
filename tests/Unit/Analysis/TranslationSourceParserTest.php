@@ -203,3 +203,123 @@ PHP;
         expect($calls[0]['key'])->toBe("it's here");
     });
 });
+
+describe('TranslationSourceParser — comment stripping', function () {
+    it('ignores translation calls inside PHP // comments', function () {
+        $source = "<?php\n// __('ignored.key')\n__('real.key');\n";
+
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls)->toHaveCount(1);
+        expect($calls[0]['key'])->toBe('real.key');
+    });
+
+    it('ignores translation calls inside PHP # comments', function () {
+        $source = "<?php\n# __('ignored.key')\n__('real.key');\n";
+
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls)->toHaveCount(1);
+        expect($calls[0]['key'])->toBe('real.key');
+    });
+
+    it('ignores translation calls inside PHP block comments', function () {
+        $source = <<<'PHP'
+<?php
+/*
+ * __('block.ignored')
+ */
+__('real.key');
+PHP;
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls)->toHaveCount(1);
+        expect($calls[0]['key'])->toBe('real.key');
+    });
+
+    it('ignores translation calls inside Blade {{-- --}} comments', function () {
+        $source = "{{-- __('blade.ignored') --}}\n{{ __('blade.real') }}";
+
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls)->toHaveCount(1);
+        expect($calls[0]['key'])->toBe('blade.real');
+    });
+
+    it('ignores translation calls inside HTML <!-- --> comments', function () {
+        $source = "<!-- __('html.ignored') -->\n{{ __('html.real') }}";
+
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls)->toHaveCount(1);
+        expect($calls[0]['key'])->toBe('html.real');
+    });
+
+    it('still correctly reports line numbers after comment stripping', function () {
+        $source = "<?php\n// ignored\n__('real.key');\n";
+
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls[0]['location']->line)->toBe(3);
+    });
+});
+
+describe('TranslationSourceParser — robust placeholder extraction', function () {
+    it('extracts placeholders from a single-line array', function () {
+        $source = "<?php __('messages.welcome', ['name' => \$user->name]);";
+
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls[0]['replacements'])->toBe(['name' => '$user->name']);
+    });
+
+    it('extracts placeholders from a multiline array (trailing comma)', function () {
+        $source = <<<'PHP'
+<?php
+__('messages.welcome', [
+    'name' => $user->name,
+]);
+PHP;
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls[0]['replacements'])->toBe(['name' => '$user->name']);
+    });
+
+    it('extracts multiple placeholders from a single-line array', function () {
+        $source = "<?php trans('mail.sent', ['email' => \$email, 'count' => \$count]);";
+
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls[0]['replacements'])->toBe([
+            'email' => '$email',
+            'count' => '$count',
+        ]);
+    });
+
+    it('extracts multiple placeholders from a multiline array with trailing commas', function () {
+        $source = <<<'PHP'
+<?php
+trans('mail.sent', [
+    'email' => $email,
+    'count' => $count,
+]);
+PHP;
+        $calls = parseSource($this->parser, $source);
+
+        expect($calls[0]['replacements'])->toBe([
+            'email' => '$email',
+            'count' => '$count',
+        ]);
+    });
+
+    it('extracts placeholder names from a call with a literal array value', function () {
+        // The VALUE ('email') is irrelevant — only the KEY ('label') matters
+        // for placeholder name extraction. The generated translation must use
+        // ':label', not the literal value.
+        $source = "<?php __('actions.send', ['label' => 'email']);";
+
+        $calls = parseSource($this->parser, $source);
+
+        expect(array_keys($calls[0]['replacements']))->toBe(['label']);
+    });
+});
