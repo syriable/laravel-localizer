@@ -65,12 +65,21 @@ final class TranslationGenerationPipeline
     /**
      * Groups filtered strings by their absolute target file path.
      *
+     * Paths are always normalised to forward-slash separators so the
+     * grouping key is stable across operating systems and so downstream
+     * string assertions (e.g. test `toContain('vendor/acme')`) behave
+     * identically on Windows and POSIX.
+     *
      * @return array<string, list<ExtractedString>>
      */
     private function groupStrings(GenerationRequest $request): array
     {
         $groups = [];
         $basePath = rtrim($request->basePath, '/\\');
+        $realBase = realpath($basePath);
+
+        $resolvedBase = $realBase !== false ? $realBase : $basePath;
+        $resolvedBase = str_replace('\\', '/', $resolvedBase);
 
         foreach ($request->result->unique() as $string) {
             if ($string->kind !== StringKind::ShortKey) {
@@ -82,15 +91,7 @@ final class TranslationGenerationPipeline
             }
 
             $relPath = $string->langFilePath($request->locale);
-
-            // Prevent path traversal: the resolved path must stay under basePath.
-            $absolutePath = $basePath.'/'.$relPath;
-            $realBase = realpath($basePath);
-
-            if ($realBase !== false) {
-                $normalized = $realBase.'/'.ltrim($relPath, '/');
-                $absolutePath = $normalized;
-            }
+            $absolutePath = $resolvedBase.'/'.ltrim($relPath, '/');
 
             $groups[$absolutePath][] = $string;
         }

@@ -333,6 +333,83 @@ Event::listen(ScanCompleted::class, function (ScanCompleted $event) {
 });
 ```
 
+## Generating translation files
+
+The package ships a companion `translations:generate` command that turns
+a scan result into actual PHP translation files. It's an optional
+convenience built on top of the extraction engine — the engine itself
+remains write-free.
+
+```bash
+php artisan translations:generate                 # uses app.locale
+php artisan translations:generate --locale=fr
+php artisan translations:generate --all-locales   # from localizer.generator.locales
+php artisan translations:generate --dry-run       # preview without writing
+php artisan translations:generate --strategy=key  # humanized | key | empty
+php artisan translations:generate --namespace=acme
+php artisan translations:generate --force         # overwrite existing values
+php artisan translations:generate --fresh         # ignore scan cache
+```
+
+For every scanned ShortKey, the generator writes the missing keys to
+the corresponding PHP file under `lang/{locale}/` (or
+`lang/vendor/{package}/{locale}/` for vendor-namespaced keys), preserving
+the directory structure encoded in the key. A key like
+`profile/btn/form.submit.label` produces:
+
+```php
+// lang/en/profile/btn/form.php
+<?php
+
+declare(strict_types=1);
+
+return [
+    'submit' => [
+        'label' => 'Label',
+    ],
+];
+```
+
+**Safety guarantees:**
+
+- Existing translation values are **never overwritten** unless you pass
+  `--force`. Re-running the command on a populated `lang/` directory
+  only adds the missing keys.
+- All writes are atomic (rename-over-temp via `AtomicWriter`).
+- `--dry-run` never touches the filesystem; it prints what would be
+  written.
+- Locales are validated against `[A-Za-z0-9_-]+` to prevent
+  path-traversal injection through crafted locale strings.
+
+**Value strategies:**
+
+| Strategy | Example key | Generated value |
+|---|---|---|
+| `humanized` (default) | `submit_btn` | `Submit btn` |
+| `key` | `auth.login.failed` | `auth.login.failed` |
+| `empty` | any | `''` |
+
+Register a custom strategy from a service provider:
+
+```php
+use Syriable\Localizer\Generator\StrategyRegistry;
+
+$this->app->extend(StrategyRegistry::class, function (StrategyRegistry $registry) {
+    $registry->register(new MyCustomStrategy);
+    return $registry;
+});
+```
+
+**Configuring default locales:**
+
+```php
+// config/localizer.php
+'generator' => [
+    'locales'  => ['en', 'fr', 'de'],  // for --all-locales
+    'strategy' => 'humanized',          // default --strategy
+],
+```
+
 ## Testing
 
 ```bash

@@ -100,21 +100,6 @@ class LocalizerException extends RuntimeException
     }
 
     /**
-     * Raised when a lock timeout occurs during a scan.
-     */
-    public static function lockTimeout(int $seconds, Throwable $cause): self
-    {
-        $message = sprintf(
-            'Could not acquire scan lock within %d second(s). '
-            .'Another scan process may be running. '
-            .'Increase `localizer.lock.seconds` if scans regularly take longer.',
-            $seconds,
-        );
-
-        return new self($message, 0, $cause);
-    }
-
-    /**
      * The file associated with this exception, if any.
      */
     public function file(): ?DiscoveredFile
