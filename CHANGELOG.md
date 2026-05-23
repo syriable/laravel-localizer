@@ -5,6 +5,14 @@ All notable changes to `syriable/laravel-localizer` will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.0.2 - 2026-05-23
+
+### What's Changed
+
+* feat: generate lang/{locale}.json files for JsonKey strings by @alkhatibsy in https://github.com/syriable/laravel-localizer/pull/13
+
+**Full Changelog**: https://github.com/syriable/laravel-localizer/compare/v1.0.1...v1.0.2
+
 ## v1.0.1 - 2026-05-23
 
 ### What's Changed
@@ -20,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automatic translation file generator.** A new `php artisan translations:generate` command reads the scan result and writes (or
   previews) PHP translation files with placeholder values for any
   missing keys. Includes:
+  
   - Three built-in value strategies: `humanized` (default, "submit_btn"
     → "Submit btn"), `key` (raw dot-notation), and `empty` (blank
     placeholder). Custom strategies can be registered via
@@ -38,21 +47,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   
 - `Generator\TranslationArrayBuilder` — builds nested PHP arrays from
   flat dot-notation keys.
+  
 - `Generator\TranslationMergeService` — recursive merge with optional
   force-overwrite, plus `countNew()` / `countAll()` for diagnostics.
+  
 - `Generator\TranslationPhpRenderer` — renders nested arrays to
   `declare(strict_types=1)` PHP files with four-space indentation.
+  
 - `Generator\TranslationFileRepository` — read (via `include`), write
   (via `AtomicWriter`), and preview translation files.
+  
 - `Generator\TranslationFileGenerator` — per-file orchestration: build
   → read existing → count new → merge → write or preview.
+  
 - `Generator\TranslationGenerationPipeline` — top-level orchestrator
   grouping strings by `langFilePath(locale)` with namespace filtering.
+  
 - `Contracts\GenerationStrategy` — interface for pluggable value
   strategies.
+  
 - `Data\GenerationRequest` / `Data\GenerationResult` DTOs.
+  
 - `localizer.generator.{locales,strategy}` config keys.
+  
 - `LocalizerException::unknownStrategy()` for misconfigured strategies.
+  
 
 ## [v1.0.0](https://github.com/syriable/laravel-localizer/releases/tag/v1.0.0/compare/v1.0.0...v1.0.0) - 2026-05-22
 
@@ -190,6 +209,7 @@ $directories = $string->directories; // ['profile']
 $key = $string->key;                 // 'submit.label'
 
 
+
 ```
 For language-file path generation:
 
@@ -203,6 +223,7 @@ $path = $string->namespace
 $path = $string->langFilePath($locale);
 
 
+
 ```
 If you implemented `Syriable\Localizer\Contracts\ResultStore`, switch to
 listening for the `Events\ScanCompleted` event:
@@ -212,6 +233,7 @@ use Syriable\Localizer\Events\ScanCompleted;
 use Illuminate\Support\Facades\Event;
 
 Event::listen(ScanCompleted::class, fn (ScanCompleted $e) => $store->put($e->result));
+
 
 
 ```
