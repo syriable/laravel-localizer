@@ -11,10 +11,21 @@ use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\ServiceProvider;
 use Syriable\Localizer\Cache\FileScanCache;
 use Syriable\Localizer\Cache\NullScanCache;
+use Syriable\Localizer\Console\GenerateCommand;
 use Syriable\Localizer\Console\ScanCommand;
 use Syriable\Localizer\Contracts\Discoverer;
 use Syriable\Localizer\Contracts\Extractor;
 use Syriable\Localizer\Contracts\ScanCache;
+use Syriable\Localizer\Generator\Strategies\EmptyStrategy;
+use Syriable\Localizer\Generator\Strategies\HumanizedStrategy;
+use Syriable\Localizer\Generator\Strategies\KeyStrategy;
+use Syriable\Localizer\Generator\StrategyRegistry;
+use Syriable\Localizer\Generator\TranslationArrayBuilder;
+use Syriable\Localizer\Generator\TranslationFileGenerator;
+use Syriable\Localizer\Generator\TranslationFileRepository;
+use Syriable\Localizer\Generator\TranslationGenerationPipeline;
+use Syriable\Localizer\Generator\TranslationMergeService;
+use Syriable\Localizer\Generator\TranslationPhpRenderer;
 use Syriable\Localizer\Pipeline\DiscoverFiles;
 use Syriable\Localizer\Pipeline\ExtractStrings;
 use Syriable\Localizer\Pipeline\FilterCached;
@@ -47,6 +58,7 @@ final class LocalizerServiceProvider extends ServiceProvider
         $this->registerRegistry();
         $this->registerPipeline();
         $this->registerEngine();
+        $this->registerGenerator();
     }
 
     public function boot(): void
@@ -58,6 +70,7 @@ final class LocalizerServiceProvider extends ServiceProvider
 
             $this->commands([
                 ScanCommand::class,
+                GenerateCommand::class,
             ]);
         }
     }
@@ -153,6 +166,39 @@ final class LocalizerServiceProvider extends ServiceProvider
         });
     }
 
+    private function registerGenerator(): void
+    {
+        $this->app->singleton(TranslationPhpRenderer::class);
+        $this->app->singleton(TranslationArrayBuilder::class);
+        $this->app->singleton(TranslationMergeService::class);
+
+        $this->app->singleton(TranslationFileRepository::class, fn ($app): TranslationFileRepository => new TranslationFileRepository(
+            files: $app->make(Filesystem::class),
+            writer: $app->make(AtomicWriter::class),
+            renderer: $app->make(TranslationPhpRenderer::class),
+        ));
+
+        $this->app->singleton(TranslationFileGenerator::class, fn ($app): TranslationFileGenerator => new TranslationFileGenerator(
+            builder: $app->make(TranslationArrayBuilder::class),
+            merger: $app->make(TranslationMergeService::class),
+            repository: $app->make(TranslationFileRepository::class),
+        ));
+
+        $this->app->singleton(StrategyRegistry::class, function (): StrategyRegistry {
+            $registry = new StrategyRegistry;
+            $registry->register(new HumanizedStrategy);
+            $registry->register(new KeyStrategy);
+            $registry->register(new EmptyStrategy);
+
+            return $registry;
+        });
+
+        $this->app->singleton(TranslationGenerationPipeline::class, fn ($app): TranslationGenerationPipeline => new TranslationGenerationPipeline(
+            fileGenerator: $app->make(TranslationFileGenerator::class),
+            strategies: $app->make(StrategyRegistry::class),
+        ));
+    }
+
     /**
      * @return list<string>
      */
@@ -164,6 +210,8 @@ final class LocalizerServiceProvider extends ServiceProvider
             ExtractorRegistry::class,
             ScanCache::class,
             Discoverer::class,
+            TranslationGenerationPipeline::class,
+            StrategyRegistry::class,
         ];
     }
 }

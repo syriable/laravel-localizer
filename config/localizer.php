@@ -113,4 +113,25 @@ return [
         'seconds' => 60,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Generator
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for `php artisan translations:generate`.
+    |
+    | `locales`   — Locales written when `--all-locales` is passed. Defaults
+    |               to the application's own `app.locale` when empty.
+    |
+    | `strategy`  — Default value-generation strategy used when `--strategy`
+    |               is not supplied on the command line.
+    |               Built-in values: "humanized", "key", "empty".
+    |               Register custom strategies via StrategyRegistry.
+    |
+    */
+    'generator' => [
+        'locales' => [],
+        'strategy' => 'humanized',
+    ],
+
 ];

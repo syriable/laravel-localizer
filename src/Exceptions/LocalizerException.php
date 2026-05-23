@@ -90,6 +90,31 @@ class LocalizerException extends RuntimeException
     }
 
     /**
+     * Raised when an unknown generation strategy name is requested.
+     */
+    public static function unknownStrategy(string $name, string $available): self
+    {
+        return new self(
+            "Unknown translation generation strategy [{$name}]. Available: {$available}.",
+        );
+    }
+
+    /**
+     * Raised when a lock timeout occurs during a scan.
+     */
+    public static function lockTimeout(int $seconds, Throwable $cause): self
+    {
+        $message = sprintf(
+            'Could not acquire scan lock within %d second(s). '
+            .'Another scan process may be running. '
+            .'Increase `localizer.lock.seconds` if scans regularly take longer.',
+            $seconds,
+        );
+
+        return new self($message, 0, $cause);
+    }
+
+    /**
      * The file associated with this exception, if any.
      */
     public function file(): ?DiscoveredFile
