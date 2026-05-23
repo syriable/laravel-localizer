@@ -22,7 +22,9 @@ describe('TranslationArrayBuilder', function () {
 
         $result = $this->builder->build([$string], $this->strategy);
 
-        expect($result)->toBe(['next' => 'next']);
+        // KeyStrategy receives the full value ('pagination.next'), not the
+        // in-file key ('next'), so callers with analysis data can look it up.
+        expect($result)->toBe(['next' => 'pagination.next']);
     });
 
     it('builds a nested array from a two-segment key', function () {
@@ -30,7 +32,7 @@ describe('TranslationArrayBuilder', function () {
 
         $result = $this->builder->build([$string], $this->strategy);
 
-        expect($result)->toBe(['submit' => ['label' => 'submit.label']]);
+        expect($result)->toBe(['submit' => ['label' => 'buttons.submit.label']]);
     });
 
     it('builds deeply nested arrays', function () {
@@ -38,7 +40,7 @@ describe('TranslationArrayBuilder', function () {
 
         $result = $this->builder->build([$string], $this->strategy);
 
-        expect($result)->toBe(['a' => ['b' => ['c' => ['d' => 'a.b.c.d']]]]);
+        expect($result)->toBe(['a' => ['b' => ['c' => ['d' => 'profile/form.a.b.c.d']]]]);
     });
 
     it('merges multiple keys into the same tree', function () {
@@ -51,9 +53,9 @@ describe('TranslationArrayBuilder', function () {
         $result = $this->builder->build($strings, $this->strategy);
 
         expect($result)->toBe([
-            'login' => 'login',
-            'logout' => 'logout',
-            'register' => 'register',
+            'login' => 'auth.login',
+            'logout' => 'auth.logout',
+            'register' => 'auth.register',
         ]);
     });
 
@@ -66,8 +68,8 @@ describe('TranslationArrayBuilder', function () {
         $result = $this->builder->build($strings, $this->strategy);
 
         expect($result)->toBe([
-            'submit' => ['label' => 'submit.label'],
-            'cancel' => 'cancel',
+            'submit' => ['label' => 'buttons.submit.label'],
+            'cancel' => 'buttons.cancel',
         ]);
     });
 
@@ -77,7 +79,7 @@ describe('TranslationArrayBuilder', function () {
 
         $result = $this->builder->build([$jsonKey, $shortKey], $this->strategy);
 
-        expect($result)->toBe(['next' => 'next']);
+        expect($result)->toBe(['next' => 'pagination.next']);
     });
 
     it('applies the supplied strategy for value generation', function () {
@@ -96,6 +98,6 @@ describe('TranslationArrayBuilder', function () {
         $result = $this->builder->build([$a, $b], $this->strategy);
 
         expect($result)->toHaveCount(1)
-            ->and($result['next'])->toBe('next');
+            ->and($result['next'])->toBe('pagination.next');
     });
 });

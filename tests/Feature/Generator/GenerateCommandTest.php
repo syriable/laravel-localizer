@@ -70,7 +70,7 @@ describe('GenerateCommand', function () {
             ->assertSuccessful();
 
         $loaded = include $langDir.'/pagination.php';
-        expect($loaded['next'])->toBe('next');
+        expect($loaded['next'])->toBe('pagination.next');
     });
 
     it('--strategy option controls value generation', function () {

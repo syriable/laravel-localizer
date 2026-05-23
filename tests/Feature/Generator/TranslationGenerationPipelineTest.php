@@ -3,9 +3,13 @@
 declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
+use Syriable\Localizer\Analysis\PlaceholderAnalysis;
+use Syriable\Localizer\Analysis\PlaceholderType;
+use Syriable\Localizer\Analysis\TranslationCallAnalysis;
 use Syriable\Localizer\Data\ExtractedString;
 use Syriable\Localizer\Data\GenerationRequest;
 use Syriable\Localizer\Data\ScanResult;
+use Syriable\Localizer\Data\SourceLocation;
 use Syriable\Localizer\Data\StringKind;
 use Syriable\Localizer\Generator\Strategies\EmptyStrategy;
 use Syriable\Localizer\Generator\Strategies\HumanizedStrategy;
@@ -451,7 +455,7 @@ describe('TranslationGenerationPipeline', function () {
         $this->pipeline->run($request);
 
         $loaded = include $langDir.'/pagination.php';
-        expect($loaded['next'])->toBe('next');
+        expect($loaded['next'])->toBe('pagination.next');
     });
 
     it('generates files with the correct locale path segment', function () {
@@ -486,5 +490,44 @@ describe('TranslationGenerationPipeline', function () {
         expect($outcome->filesWritten())->toBe(1);
         $written = str_replace('\\', '/', $outcome->written[0]);
         expect($written)->toContain('profile/btn/form.php');
+    });
+
+    it('analysis placeholder tokens appear in generated values for directory-prefixed keys', function () {
+        // Regression: __('profile/form/buttons.submit.label', ['name' => $user->name])
+        // previously generated 'Label' instead of 'Label :name' because
+        // callAnalyses is keyed by the full value ('profile/form/buttons.submit.label')
+        // while generate() was called with only the in-file key ('submit.label').
+        $langDir = $this->tempDir.'/lang/en/profile/form';
+
+        $analysis = new TranslationCallAnalysis(
+            key: 'profile/form/buttons.submit.label',
+            location: new SourceLocation('/tmp/test.php', 1),
+            functionName: '__',
+            placeholders: [
+                new PlaceholderAnalysis(
+                    placeholder: ':name',
+                    source: '$user->name',
+                    type: PlaceholderType::ObjectProperty,
+                    structure: ['object' => '$user', 'property' => 'name'],
+                ),
+            ],
+            langExample: [],
+        );
+
+        $string = makeExtractedString('profile/form/buttons.submit.label', StringKind::ShortKey);
+        $result = makeScanResultFromStrings($string);
+
+        $request = new GenerationRequest(
+            result: $result,
+            locale: 'en',
+            strategy: 'humanized',
+            basePath: $this->tempDir,
+            callAnalyses: ['profile/form/buttons.submit.label' => $analysis],
+        );
+
+        $this->pipeline->run($request);
+
+        $loaded = include $langDir.'/buttons.php';
+        expect($loaded['submit']['label'])->toBe('Label :name');
     });
 });
