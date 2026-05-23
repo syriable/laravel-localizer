@@ -9,8 +9,12 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\ServiceProvider;
+use Syriable\Localizer\Analysis\PhpExpressionClassifier;
+use Syriable\Localizer\Analysis\TranslationCallAnalyzer;
+use Syriable\Localizer\Analysis\TranslationSourceParser;
 use Syriable\Localizer\Cache\FileScanCache;
 use Syriable\Localizer\Cache\NullScanCache;
+use Syriable\Localizer\Console\AnalyzeCommand;
 use Syriable\Localizer\Console\GenerateCommand;
 use Syriable\Localizer\Console\ScanCommand;
 use Syriable\Localizer\Contracts\Discoverer;
@@ -61,6 +65,7 @@ final class LocalizerServiceProvider extends ServiceProvider
         $this->registerPipeline();
         $this->registerEngine();
         $this->registerGenerator();
+        $this->registerAnalyzer();
     }
 
     public function boot(): void
@@ -73,6 +78,7 @@ final class LocalizerServiceProvider extends ServiceProvider
             $this->commands([
                 ScanCommand::class,
                 GenerateCommand::class,
+                AnalyzeCommand::class,
             ]);
         }
     }
@@ -209,6 +215,19 @@ final class LocalizerServiceProvider extends ServiceProvider
             fileGenerator: $app->make(TranslationFileGenerator::class),
             jsonFileGenerator: $app->make(TranslationJsonFileGenerator::class),
             strategies: $app->make(StrategyRegistry::class),
+        ));
+    }
+
+    private function registerAnalyzer(): void
+    {
+        $this->app->singleton(PhpExpressionClassifier::class);
+        $this->app->singleton(TranslationSourceParser::class);
+
+        $this->app->singleton(TranslationCallAnalyzer::class, fn ($app): TranslationCallAnalyzer => new TranslationCallAnalyzer(
+            files: $app->make(Filesystem::class),
+            parser: $app->make(TranslationSourceParser::class),
+            classifier: $app->make(PhpExpressionClassifier::class),
+            stringClassifier: $app->make(StringClassifier::class),
         ));
     }
 
