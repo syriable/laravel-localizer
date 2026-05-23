@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Syriable\Localizer\Generator;
 
+use Syriable\Localizer\Contracts\AnalysisAwareStrategy;
+use Syriable\Localizer\Contracts\LocaleAwareStrategy;
 use Syriable\Localizer\Data\ExtractedString;
 use Syriable\Localizer\Data\GenerationRequest;
 use Syriable\Localizer\Data\GenerationResult;
@@ -41,6 +43,14 @@ final class TranslationGenerationPipeline
         );
 
         $strategy = $this->strategies->get($request->strategy);
+
+        if ($strategy instanceof LocaleAwareStrategy) {
+            $strategy = $strategy->withLocale($request->locale);
+        }
+
+        if ($strategy instanceof AnalysisAwareStrategy && $request->callAnalyses !== []) {
+            $strategy = $strategy->withAnalysis($request->callAnalyses);
+        }
 
         foreach ($this->groupPhpStrings($request) as $absolutePath => $strings) {
             $outcome = $this->fileGenerator->generate(

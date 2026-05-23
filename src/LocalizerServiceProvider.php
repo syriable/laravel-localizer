@@ -9,6 +9,9 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\ServiceProvider;
+use Syriable\Localizer\AI\AiTranslationCache;
+use Syriable\Localizer\AI\AiTranslationClient;
+use Syriable\Localizer\AI\PlaceholderMasker;
 use Syriable\Localizer\Analysis\PhpExpressionClassifier;
 use Syriable\Localizer\Analysis\TranslationCallAnalyzer;
 use Syriable\Localizer\Analysis\TranslationSourceParser;
@@ -20,6 +23,7 @@ use Syriable\Localizer\Console\ScanCommand;
 use Syriable\Localizer\Contracts\Discoverer;
 use Syriable\Localizer\Contracts\Extractor;
 use Syriable\Localizer\Contracts\ScanCache;
+use Syriable\Localizer\Generator\Strategies\AiGenerationStrategy;
 use Syriable\Localizer\Generator\Strategies\EmptyStrategy;
 use Syriable\Localizer\Generator\Strategies\HumanizedStrategy;
 use Syriable\Localizer\Generator\Strategies\KeyStrategy;
@@ -202,11 +206,33 @@ final class LocalizerServiceProvider extends ServiceProvider
             repository: $app->make(TranslationJsonRepository::class),
         ));
 
-        $this->app->singleton(StrategyRegistry::class, function (): StrategyRegistry {
+        $this->app->singleton(PlaceholderMasker::class);
+
+        $this->app->singleton(AiTranslationCache::class, fn ($app): AiTranslationCache => new AiTranslationCache(
+            files: $app->make(Filesystem::class),
+            writer: $app->make(AtomicWriter::class),
+            path: (string) $app['config']->get('localizer.ai.cache_path', storage_path('app/.localizer/ai-cache.json')),
+        ));
+
+        $this->app->singleton(AiTranslationClient::class, fn ($app): AiTranslationClient => new AiTranslationClient(
+            apiKey: (string) $app['config']->get('localizer.ai.api_key', ''),
+            model: (string) $app['config']->get('localizer.ai.model', 'claude-opus-4-7'),
+        ));
+
+        $this->app->singleton(AiGenerationStrategy::class, fn ($app): AiGenerationStrategy => new AiGenerationStrategy(
+            client: $app->make(AiTranslationClient::class),
+            cache: $app->make(AiTranslationCache::class),
+            masker: $app->make(PlaceholderMasker::class),
+            fallback: new HumanizedStrategy,
+            sourceLocale: (string) $app['config']->get('localizer.ai.source_locale', 'en'),
+        ));
+
+        $this->app->singleton(StrategyRegistry::class, function ($app): StrategyRegistry {
             $registry = new StrategyRegistry;
             $registry->register(new HumanizedStrategy);
             $registry->register(new KeyStrategy);
             $registry->register(new EmptyStrategy);
+            $registry->register($app->make(AiGenerationStrategy::class));
 
             return $registry;
         });

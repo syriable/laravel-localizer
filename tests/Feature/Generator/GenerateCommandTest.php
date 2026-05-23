@@ -22,14 +22,14 @@ describe('GenerateCommand', function () {
     });
 
     it('exits successfully with no strings found', function () {
-        $this->artisan('translations:generate', ['--locale' => 'en'])
+        $this->artisan('localizer:generate', ['--locale' => 'en'])
             ->assertSuccessful();
     });
 
     it('generates a translation file for scanned blade strings', function () {
         writeFile($this->tempPath, 'welcome.blade.php', "{{ __('pagination.next') }}");
 
-        $this->artisan('translations:generate', ['--locale' => 'en'])
+        $this->artisan('localizer:generate', ['--locale' => 'en'])
             ->assertSuccessful();
 
         $langPath = base_path('lang/en/pagination.php');
@@ -42,7 +42,7 @@ describe('GenerateCommand', function () {
     it('--dry-run does not write files', function () {
         writeFile($this->tempPath, 'welcome.blade.php', "{{ __('pagination.next') }}");
 
-        $this->artisan('translations:generate', ['--locale' => 'en', '--dry-run' => true])
+        $this->artisan('localizer:generate', ['--locale' => 'en', '--dry-run' => true])
             ->assertSuccessful()
             ->expectsOutputToContain('WOULD WRITE');
 
@@ -55,7 +55,7 @@ describe('GenerateCommand', function () {
         @mkdir($langDir, 0o755, true);
         file_put_contents($langDir.'/pagination.php', "<?php\nreturn ['next' => 'Next'];");
 
-        $this->artisan('translations:generate', ['--locale' => 'en'])
+        $this->artisan('localizer:generate', ['--locale' => 'en'])
             ->assertSuccessful()
             ->expectsOutputToContain('up to date');
     });
@@ -66,7 +66,7 @@ describe('GenerateCommand', function () {
         @mkdir($langDir, 0o755, true);
         file_put_contents($langDir.'/pagination.php', "<?php\nreturn ['next' => 'Custom'];");
 
-        $this->artisan('translations:generate', ['--locale' => 'en', '--force' => true])
+        $this->artisan('localizer:generate', ['--locale' => 'en', '--force' => true])
             ->assertSuccessful();
 
         $loaded = include $langDir.'/pagination.php';
@@ -76,7 +76,7 @@ describe('GenerateCommand', function () {
     it('--strategy option controls value generation', function () {
         writeFile($this->tempPath, 'welcome.blade.php', "{{ __('pagination.next') }}");
 
-        $this->artisan('translations:generate', ['--locale' => 'en', '--strategy' => 'empty'])
+        $this->artisan('localizer:generate', ['--locale' => 'en', '--strategy' => 'empty'])
             ->assertSuccessful();
 
         $langPath = base_path('lang/en/pagination.php');
@@ -89,7 +89,7 @@ describe('GenerateCommand', function () {
         writeFile($this->tempPath, 'welcome.blade.php', "{{ __('pagination.next') }}");
         config(['localizer.generator.locales' => ['en', 'fr']]);
 
-        $this->artisan('translations:generate', ['--all-locales' => true])
+        $this->artisan('localizer:generate', ['--all-locales' => true])
             ->assertSuccessful();
 
         expect(file_exists(base_path('lang/en/pagination.php')))->toBeTrue()
@@ -100,7 +100,7 @@ describe('GenerateCommand', function () {
         writeFile($this->tempPath, 'welcome.blade.php', "{{ __('pagination.next') }}");
         config(['app.locale' => 'de']);
 
-        $this->artisan('translations:generate')
+        $this->artisan('localizer:generate')
             ->assertSuccessful();
 
         expect(file_exists(base_path('lang/de/pagination.php')))->toBeTrue();
@@ -111,7 +111,7 @@ describe('GenerateCommand', function () {
             "{{ __('pagination.next') }}\n{{ __(\"acme::buttons.submit\") }}",
         );
 
-        $this->artisan('translations:generate', ['--locale' => 'en', '--namespace' => 'acme'])
+        $this->artisan('localizer:generate', ['--locale' => 'en', '--namespace' => 'acme'])
             ->assertSuccessful();
 
         expect(file_exists(base_path('lang/vendor/acme/en/buttons.php')))->toBeTrue()
@@ -121,7 +121,7 @@ describe('GenerateCommand', function () {
     it('--fresh ignores the cache and re-scans', function () {
         writeFile($this->tempPath, 'welcome.blade.php', "{{ __('pagination.next') }}");
 
-        $this->artisan('translations:generate', ['--locale' => 'en', '--fresh' => true])
+        $this->artisan('localizer:generate', ['--locale' => 'en', '--fresh' => true])
             ->assertSuccessful();
 
         $loaded = include base_path('lang/en/pagination.php');
@@ -131,14 +131,14 @@ describe('GenerateCommand', function () {
     it('succeeds with a warning when --all-locales has no configured locales', function () {
         config(['localizer.generator.locales' => []]);
 
-        $this->artisan('translations:generate', ['--all-locales' => true])
+        $this->artisan('localizer:generate', ['--all-locales' => true])
             ->assertSuccessful();
     });
 
     it('generates a JSON file for free-text strings', function () {
         writeFile($this->tempPath, 'welcome.blade.php', "{{ __('Welcome back') }}");
 
-        $this->artisan('translations:generate', ['--locale' => 'en'])
+        $this->artisan('localizer:generate', ['--locale' => 'en'])
             ->assertSuccessful();
 
         $jsonPath = base_path('lang/en.json');
@@ -153,7 +153,7 @@ describe('GenerateCommand', function () {
             "{{ __('pagination.next') }}\n{{ __('Welcome back') }}",
         );
 
-        $this->artisan('translations:generate', ['--locale' => 'en'])
+        $this->artisan('localizer:generate', ['--locale' => 'en'])
             ->assertSuccessful();
 
         expect(file_exists(base_path('lang/en/pagination.php')))->toBeTrue()
@@ -163,7 +163,7 @@ describe('GenerateCommand', function () {
     it('--dry-run does not write JSON files', function () {
         writeFile($this->tempPath, 'welcome.blade.php', "{{ __('Welcome back') }}");
 
-        $this->artisan('translations:generate', ['--locale' => 'en', '--dry-run' => true])
+        $this->artisan('localizer:generate', ['--locale' => 'en', '--dry-run' => true])
             ->assertSuccessful()
             ->expectsOutputToContain('WOULD WRITE');
 
@@ -176,7 +176,7 @@ describe('GenerateCommand', function () {
         @mkdir($langDir, 0o755, true);
         file_put_contents($langDir.'/en.json', json_encode(['Welcome back' => 'Bienvenue']));
 
-        $this->artisan('translations:generate', ['--locale' => 'en'])
+        $this->artisan('localizer:generate', ['--locale' => 'en'])
             ->assertSuccessful()
             ->expectsOutputToContain('up to date');
 
@@ -190,7 +190,7 @@ describe('GenerateCommand', function () {
         @mkdir($langDir, 0o755, true);
         file_put_contents($langDir.'/en.json', json_encode(['Welcome back' => 'Bienvenue']));
 
-        $this->artisan('translations:generate', ['--locale' => 'en', '--force' => true])
+        $this->artisan('localizer:generate', ['--locale' => 'en', '--force' => true])
             ->assertSuccessful();
 
         $data = json_decode(file_get_contents($langDir.'/en.json'), true);

@@ -134,4 +134,31 @@ return [
         'strategy' => 'humanized',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | AI Translation
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for the `ai` generation strategy, which uses the
+    | Anthropic Messages API to translate missing keys into the target locale.
+    |
+    | `model`             — Anthropic model ID. Defaults to claude-opus-4-7.
+    | `api_key`           — Anthropic API key. Reads ANTHROPIC_API_KEY by default.
+    | `source_locale`     — The locale your source strings are already in.
+    |                       Defaults to LOCALIZER_AI_SOURCE_LOCALE or "en".
+    | `fallback_strategy` — Strategy name used when the API call fails.
+    | `cache_path`        — Absolute path to the AI translation cache file.
+    |                       Kept separate from the scan cache so that
+    |                       `php artisan cache:clear` never evicts expensive
+    |                       AI translations.
+    |
+    */
+    'ai' => [
+        'model' => env('LOCALIZER_AI_MODEL', 'claude-opus-4-7'),
+        'api_key' => env('ANTHROPIC_API_KEY', ''),
+        'source_locale' => env('LOCALIZER_AI_SOURCE_LOCALE', 'en'),
+        'fallback_strategy' => 'humanized',
+        'cache_path' => storage_path('app/.localizer/ai-cache.json'),
+    ],
+
 ];
